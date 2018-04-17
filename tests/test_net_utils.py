@@ -24,11 +24,36 @@ class TestNetworkUtils(unittest.TestCase):
         self.assertEqual(b.name, 'test_biases:0')
 
     def test_dense_layer(self):
-        test_x = tf.placeholder(tf.float32, shape=[10, 10, 100])
-        layer = net_utils.dense_layer(test_x, 100, 'test_dense')
-        self.assertEqual(layer.shape[0], 10000)
-        self.assertEqual(layer.shape[1], 100)
+        test_x = tf.placeholder(tf.float32, shape=[None, 2, 3, 4])
+        layer = net_utils.dense_layer(test_x, 233, 'test_dense')
+
+        self.assertEqual(layer.shape[1], 233)
         self.assertEqual(layer.name, 'test_dense/Relu:0')
+
+    def test_dropout(self):
+        test_x = tf.placeholder(tf.float32, shape=[None, 100])
+        test_prob = tf.placeholder_with_default(-.5, shape=(), name='keep_tst')
+        layer = net_utils.dense_layer(test_x, 120, 'test_drop_in')
+        drp = net_utils.drop_layer(layer, test_prob, 't_drop')
+
+        # only to check that the dropout does not modify the input shape
+        self.assertEqual(drp.shape[1], 120)
+        self.assertEqual(drp.name, 't_drop/dropout/mul:0')
+
+    def test_dense_layers(self):
+        test_units = [37, 22, 18]
+        test_x = tf.placeholder(tf.float32, shape=[None, 8, 7, 9])
+        test_prob = tf.placeholder_with_default(-.5, shape=(), name='keep_tst')
+        layers = net_utils.dense_layers(test_x, test_units, test_prob,
+                                        'test_d_lay')
+
+        self.assertEqual(len(layers), 6)
+        self.assertEqual(layers[0].shape[1], 37)
+        self.assertEqual(layers[1].shape[1], 37)
+        self.assertEqual(layers[2].shape[1], 22)
+        self.assertEqual(layers[3].shape[1], 22)
+        self.assertEqual(layers[4].shape[1], 18)
+        self.assertEqual(layers[5].shape[1], 18)
 
 
 if __name__ == '__main__':
