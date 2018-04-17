@@ -96,3 +96,34 @@ def dense_layers(x, units, keep_probability, name_prefix):
         layers.append(drop)
 
     return layers
+
+
+def depth_conv2d_layer(x, kernel, name, padding='SAME'):
+    """Generate a depthwise convolutional layer
+
+    This method produces a layer by applying depthwise, 2D convolution to
+    the input. The kernel should contain 2 dimensions only.
+
+    Arguments:
+
+    x -- the input of the convolution
+    kernel -- namespace with 'kernel' and 'depth' fields
+    name -- the name of the layer
+    padding -- the type of padding to apply (default SAME)
+    """
+    with tf.name_scope(name):
+        channels = x.shape[3].value
+        depth = kernel.depth
+        k = kernel.kernel
+
+        w = generate_weights([k[0], k[1], channels, depth])
+
+        b = generate_biases([channels * depth])
+        conv = tf.nn.depthwise_conv2d(x, w, [1, 1, 1, 1], padding=padding)
+        act = tf.nn.relu(tf.add(conv, b))
+
+        tf.summary.histogram('weights', w)
+        tf.summary.histogram('biases', b)
+        tf.summary.histogram('activations', act)
+
+        return act

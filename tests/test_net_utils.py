@@ -1,4 +1,5 @@
 import unittest
+import types
 
 import tensorflow as tf
 from antools.network import net_utils
@@ -54,6 +55,25 @@ class TestNetworkUtils(unittest.TestCase):
         self.assertEqual(layers[3].shape[1], 22)
         self.assertEqual(layers[4].shape[1], 18)
         self.assertEqual(layers[5].shape[1], 18)
+
+    def test_depth_conv2d_layer(self):
+        test_x = tf.placeholder(tf.float32, shape=[None, 10, 10, 3])
+        test_k = types.SimpleNamespace(kernel=[3, 3], depth=2)
+        conv = net_utils.depth_conv2d_layer(test_x, test_k, 'conv')
+
+        self.assertEqual(conv.shape[1].value, 10)
+        self.assertEqual(conv.shape[2].value, 10)
+        self.assertEqual(conv.shape[3].value, 6)
+
+    def test_depth_conv2d_layer_valid_padding(self):
+        test_x = tf.placeholder(tf.float32, shape=[None, 10, 10, 3])
+        test_k = types.SimpleNamespace(kernel=[3, 3], depth=2)
+        conv = net_utils.depth_conv2d_layer(test_x, test_k, 'conv',
+                                            padding='VALID')
+
+        self.assertEqual(conv.shape[1], 8)
+        self.assertEqual(conv.shape[2], 8)
+        self.assertEqual(conv.shape[3], 6)
 
 
 if __name__ == '__main__':
