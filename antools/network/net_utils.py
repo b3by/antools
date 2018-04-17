@@ -115,11 +115,12 @@ def depth_conv2d_layer(x, kernel, name, padding='SAME'):
         channels = x.shape[3].value
         depth = kernel.depth
         k = kernel.kernel
+        strides = kernel.strides
 
         w = generate_weights([k[0], k[1], channels, depth])
-
         b = generate_biases([channels * depth])
-        conv = tf.nn.depthwise_conv2d(x, w, [1, 1, 1, 1], padding=padding)
+
+        conv = tf.nn.depthwise_conv2d(x, w, strides, padding=padding)
         act = tf.nn.relu(tf.add(conv, b))
 
         tf.summary.histogram('weights', w)

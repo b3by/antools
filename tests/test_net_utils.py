@@ -58,7 +58,8 @@ class TestNetworkUtils(unittest.TestCase):
 
     def test_depth_conv2d_layer(self):
         test_x = tf.placeholder(tf.float32, shape=[None, 10, 10, 3])
-        test_k = types.SimpleNamespace(kernel=[3, 3], depth=2)
+        test_k = types.SimpleNamespace(kernel=[3, 3], strides=[1, 1, 1, 1],
+                                       depth=2)
         conv = net_utils.depth_conv2d_layer(test_x, test_k, 'conv')
 
         self.assertEqual(conv.shape[1].value, 10)
@@ -67,7 +68,8 @@ class TestNetworkUtils(unittest.TestCase):
 
     def test_depth_conv2d_layer_valid_padding(self):
         test_x = tf.placeholder(tf.float32, shape=[None, 10, 10, 3])
-        test_k = types.SimpleNamespace(kernel=[3, 3], depth=2)
+        test_k = types.SimpleNamespace(kernel=[3, 3], strides=[1, 1, 1, 1],
+                                       depth=2)
         conv = net_utils.depth_conv2d_layer(test_x, test_k, 'conv',
                                             padding='VALID')
 
