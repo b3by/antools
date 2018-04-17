@@ -4,6 +4,13 @@
 
 A bit of boilerplating for data science projects.
 
+## Install
+To install, use `pip` (a virtual environment is highly recommended):
+
+```
+pip install git+git://https://github.com/b3by/antools
+```
+
 ## Exec
 To run the tests, just type:
 
