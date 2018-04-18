@@ -77,6 +77,25 @@ class TestNetworkUtils(unittest.TestCase):
         self.assertEqual(conv.shape[2], 8)
         self.assertEqual(conv.shape[3], 6)
 
+    def test_maxpool_layer(self):
+        test_x = tf.placeholder(tf.float32, shape=[None, 10, 10, 3])
+        test_k = types.SimpleNamespace(kernel=[1, 2, 2, 1],
+                                       strides=[1, 2, 2, 1])
+        m_pool = net_utils.maxpool_layer(test_x, test_k, 'test_pool')
+
+        self.assertEqual(m_pool.shape[1], 5)
+        self.assertEqual(m_pool.shape[2], 5)
+
+    def test_maxpool_layer_same_padding(self):
+        test_x = tf.placeholder(tf.float32, shape=[None, 12, 12, 3])
+        test_k = types.SimpleNamespace(kernel=[1, 3, 3, 1],
+                                       strides=[1, 2, 2, 1])
+        m_pool = net_utils.maxpool_layer(test_x, test_k, 'test_pool',
+                                         padding='SAME')
+
+        self.assertEqual(m_pool.shape[1], 6)
+        self.assertEqual(m_pool.shape[2], 6)
+
 
 if __name__ == '__main__':
     unittest.main()

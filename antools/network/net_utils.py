@@ -9,7 +9,6 @@ def generate_weights(shape, name='W'):
     This method generates weights of the specified shape. Weights are
     initialized with a truncated normal with 0.1 as standard deviation.
     """
-
     initial = tf.truncated_normal(shape, stddev=0.1)
     return tf.Variable(initial, name=name)
 
@@ -20,7 +19,6 @@ def generate_biases(shape, name='b'):
     This method generates biases of the specified shape. Biases are all
     initialized with a 0.1 constant value.
     """
-
     initial = tf.constant(0.1, shape=shape)
     return tf.Variable(initial, name=name)
 
@@ -39,7 +37,6 @@ def dense_layer(x, number_units, name):
     number_units -- the number of units that compose the layer
     name -- the name of the layer scope
     """
-
     with tf.name_scope(name):
         s = reduce(lambda x, y: x * y, x.get_shape().as_list()[1:])
         flattened = tf.reshape(x, [-1, s])
@@ -63,7 +60,6 @@ def drop_layer(x, keep_probability, name):
     name -- the name of the layer
 
     """
-
     with tf.name_scope(name):
         return tf.nn.dropout(x, keep_probability)
 
@@ -84,7 +80,6 @@ def dense_layers(x, units, keep_probability, name_prefix):
     name_prefix -- the prefix for the scope name of each dense layer
 
     """
-
     layers = []
 
     for idx, u in enumerate(units):
@@ -107,7 +102,7 @@ def depth_conv2d_layer(x, kernel, name, padding='SAME'):
     Arguments:
 
     x -- the input of the convolution
-    kernel -- namespace with 'kernel' and 'depth' fields
+    kernel -- namespace with 'kernel', 'strides' and 'depth' fields
     name -- the name of the layer
     padding -- the type of padding to apply (default SAME)
     """
@@ -128,3 +123,23 @@ def depth_conv2d_layer(x, kernel, name, padding='SAME'):
         tf.summary.histogram('activations', act)
 
         return act
+
+
+def maxpool_layer(x, kernel, name, padding='VALID'):
+    """Generate a max pooling layer
+
+    This method can be used to generate a max pooling layer. The input and the
+    kernel dimensions should be provided as input. By default, no padding is
+    applied to the input layer before the max pooling operation.
+
+    Arguments:
+
+    x -- the input tensor
+    kernel -- namespace with 'kernel' and 'strides' fields
+    name -- the name of the layer scope
+    padding -- the type of padding to apply to the input (default VALID)
+
+    """
+    with tf.name_scope(name):
+        return tf.nn.max_pool(x, ksize=kernel.kernel, strides=kernel.strides,
+                              padding=padding)
