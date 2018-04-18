@@ -19,5 +19,9 @@ setup(
         'Programming Language :: Python :: 3.6',
     ],
     python_requires='>=3',
+    install_requires=[
+        'tensorflow',
+        'coverage'
+    ],
     keywords='datascience boilerplate'
 )
