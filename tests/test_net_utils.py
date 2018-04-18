@@ -96,6 +96,12 @@ class TestNetworkUtils(unittest.TestCase):
         self.assertEqual(m_pool.shape[1], 6)
         self.assertEqual(m_pool.shape[2], 6)
 
+    def test_softmax_layer(self):
+        test_x = tf.placeholder(tf.float32, shape=[None, 100])
+        test_soft = net_utils.softmax_layer(test_x, 3, 'test_softmax')
+
+        self.assertEqual(test_soft.shape[1], 3)
+
 
 if __name__ == '__main__':
     unittest.main()

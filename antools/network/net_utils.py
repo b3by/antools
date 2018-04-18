@@ -143,3 +143,23 @@ def maxpool_layer(x, kernel, name, padding='VALID'):
     with tf.name_scope(name):
         return tf.nn.max_pool(x, ksize=kernel.kernel, strides=kernel.strides,
                               padding=padding)
+
+
+def softmax_layer(x, number_labels, name):
+    """Generate softmax layer
+
+    This method generates a softmax layer from the input x, according with the
+    number of labels provided as argument.
+
+    Arguments:
+
+    x -- the input tensor
+    number_labels -- how many labels should be used
+    name -- the name of the layer scope
+
+    """
+    with tf.name_scope(name):
+        weights = generate_weights([x.shape[1].value, number_labels])
+        biases = generate_biases([number_labels])
+
+        return tf.nn.softmax(tf.matmul(x, weights) + biases)
