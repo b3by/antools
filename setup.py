@@ -37,7 +37,8 @@ setup(
     python_requires='>=3',
     install_requires=[
         'tensorflow',
-        'coverage'
+        'coverage',
+        'humanize'
     ],
     include_package_data=True,
     keywords='datascience boilerplate'
