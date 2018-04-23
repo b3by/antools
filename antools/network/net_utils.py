@@ -3,6 +3,13 @@ from functools import reduce
 import tensorflow as tf
 
 
+activations = {
+    'relu': tf.nn.relu,
+    'sigmoid': tf.nn.sigmoid,
+    'tanh': tf.nn.tanh
+}
+
+
 def generate_weights(shape, name='W'):
     """Generate a weight variable
 
@@ -23,7 +30,7 @@ def generate_biases(shape, name='b'):
     return tf.Variable(initial, name=name)
 
 
-def dense_layer(x, number_units, name):
+def dense_layer(x, number_units, name, activation='relu'):
     """Generate a dense layer
 
     This method creates a dense layer with as many units as specified in the
@@ -36,6 +43,7 @@ def dense_layer(x, number_units, name):
     x  -- the input of the dense layer
     number_units -- the number of units that compose the layer
     name -- the name of the layer scope
+    activation -- the activation function to use (optional, default to relu)
     """
     with tf.name_scope(name):
         s = reduce(lambda x, y: x * y, x.get_shape().as_list()[1:])
@@ -43,7 +51,8 @@ def dense_layer(x, number_units, name):
         weights = generate_weights([flattened.shape[1].value, number_units])
         biases = generate_biases([number_units])
 
-        return tf.nn.relu(tf.add(tf.matmul(flattened, weights), biases))
+        return activations[activation](
+            tf.add(tf.matmul(flattened, weights), biases))
 
 
 def drop_layer(x, keep_probability, name):
@@ -64,7 +73,7 @@ def drop_layer(x, keep_probability, name):
         return tf.nn.dropout(x, keep_probability)
 
 
-def dense_layers(x, units, keep_probability, name_prefix):
+def dense_layers(x, units, keep_probability, name_prefix, activation='relu'):
     """Generate a stack of dense layers
 
     This method generates a stack of fully connected layers. The layers will
@@ -78,14 +87,14 @@ def dense_layers(x, units, keep_probability, name_prefix):
     units -- a list containing the units to be included in each layer
     keep_probability -- the probability of keeping units in the layers
     name_prefix -- the prefix for the scope name of each dense layer
-
+    activation -- the activation function to use (optional, default to relu)
     """
     layers = []
 
     for idx, u in enumerate(units):
         nm = name_prefix + '{}'.format(idx + 1)
         in_layer = x if idx == 0 else layers[-1]
-        f = dense_layer(in_layer, u, nm)
+        f = dense_layer(in_layer, u, nm, activation)
         layers.append(f)
         drop = drop_layer(f, keep_probability, 'drop{}'.format(idx + 1))
         layers.append(drop)
@@ -163,3 +172,24 @@ def softmax_layer(x, number_labels, name):
         biases = generate_biases([number_labels])
 
         return tf.nn.softmax(tf.matmul(x, weights) + biases)
+
+
+def cross_entropy_loss(predicted, ground, name, regularize=False):
+    """Calculate corss entropy
+
+    This method calculates the cross entropy for a vector of predictions.
+    If required, the loss function is calculated with L2 regularization.
+
+    Arguments:
+    predicted -- the tensor of predicted values
+    ground -- the tensor of ground truth for the points
+    name -- the scope name of the loss calculation
+    regularize -- whether L2 regularization should be used (defaulted to False)
+    """
+    with tf.name_scope(name):
+        loss = -tf.reduce_sum(ground * tf.log(predicted))
+
+        if regularize:
+            loss = tf.nn.l2_loss(loss)
+
+        return loss

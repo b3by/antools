@@ -102,6 +102,10 @@ class TestNetworkUtils(unittest.TestCase):
 
         self.assertEqual(test_soft.shape[1], 3)
 
+    def test_cross_entropy(self):
+        # should be implemented!
+        pass
+
 
 if __name__ == '__main__':
     unittest.main()
