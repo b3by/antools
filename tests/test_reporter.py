@@ -3,7 +3,7 @@ import unittest
 from antools.utils import reporter
 
 
-class TestNetworkUtils(unittest.TestCase):
+class TestReporter(unittest.TestCase):
 
     def test_create_reporter(self):
         r = reporter.Reporter('./wololo.json')

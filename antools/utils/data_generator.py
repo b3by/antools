@@ -44,7 +44,8 @@ def next_window(signals, window_size, stride):
     """
     c_win = 0
     while c_win + window_size <= len(signals[0]):
-        w = [list(signals[i][c_win:c_win + window_size] for i in range(6))]
+        w = [list(signals[i][c_win:c_win + window_size])
+             for i in range(len(signals))]
         yield [item for subsignal in w for item in subsignal]
         c_win += stride
 
