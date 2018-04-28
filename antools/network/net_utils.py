@@ -207,7 +207,7 @@ def adam_backprop(loss, learning_rate, name):
     learning_rate -- the initial learning rate to use
     name -- the scope name for the optimizer
     """
-    with tf.anem_scope(name):
+    with tf.name_scope(name):
         optimizer = tf.train.AdamOptimizer(
             learning_rate=learning_rate).minimize(loss)
 
