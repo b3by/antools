@@ -210,4 +210,39 @@ def adam_backprop(loss, learning_rate, name):
     with tf.anem_scope(name):
         optimizer = tf.train.AdamOptimizer(
             learning_rate=learning_rate).minimize(loss)
+
         return optimizer
+
+
+def batchnorm_layer(x, n_out, is_train, name):
+    """Batch normalization layer
+
+    This method generate a batch normalization layer.
+
+    Arguments:
+
+    x -- the layer input
+    n_out -- number of output units
+    is_train -- whether the network in in training or testing mode
+    name -- the name of the layer
+    """
+    with tf.name_scope(name):
+        beta = tf.Variable(tf.constant(0.0, shape=[n_out]), name='beta',
+                           trainable=True)
+        gamma = tf.Variable(tf.constant(1.0, shape=[n_out]), name='gamma',
+                            trainable=True)
+        batch_mean, batch_var = tf.nn.moments(x, [0, 1, 2], name='moments')
+        ema = tf.train.ExponentialMovingAverage(decay=0.5)
+
+        def mean_var_with_update():
+            ema_apply_op = ema.apply([batch_mean, batch_var])
+            with tf.control_dependencies([ema_apply_op]):
+                return tf.identity(batch_mean), tf.identity(batch_var)
+
+        mean, var = tf.cond(is_train, mean_var_with_update, lambda:
+                            (ema.average(batch_mean), ema.average(batch_var)))
+
+        normed = tf.nn.batch_normalization(x, mean, var, beta, gamma, 1e-3)
+        tf.summary.histogram('norm_activations', normed)
+
+        return normed
