@@ -38,8 +38,13 @@ setup(
     install_requires=[
         'tensorflow',
         'coverage',
-        'humanize'
+        'humanize',
+        'numpy',
+        'pandas',
+        'sklearn',
+        'scipy',
+        'tqdm'
     ],
     include_package_data=True,
-    keywords='datascience boilerplate'
+    keywords='datascience boilerplate tensorflow'
 )

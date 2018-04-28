@@ -40,7 +40,7 @@ def get_files(ds_location, coordinates, exercises=None):
 def next_window(signals, window_size, stride):
     """Rolling windows
 
-    This method yields windows.
+    This method yields windows. That's how it rolls.
     """
     c_win = 0
     while c_win + window_size <= len(signals[0]):
