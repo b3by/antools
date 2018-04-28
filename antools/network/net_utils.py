@@ -181,6 +181,7 @@ def cross_entropy_loss(predicted, ground, name, regularize=False):
     If required, the loss function is calculated with L2 regularization.
 
     Arguments:
+
     predicted -- the tensor of predicted values
     ground -- the tensor of ground truth for the points
     name -- the scope name of the loss calculation
@@ -193,3 +194,20 @@ def cross_entropy_loss(predicted, ground, name, regularize=False):
             loss = tf.nn.l2_loss(loss)
 
         return loss
+
+
+def adam_backprop(loss, learning_rate, name):
+    """Run backpropagation step
+
+    This method runs the backpropagation step with the Adam optimizer.
+
+    Arguments:
+
+    loss -- the loss value to use for the optimization
+    learning_rate -- the initial learning rate to use
+    name -- the scope name for the optimizer
+    """
+    with tf.anem_scope(name):
+        optimizer = tf.train.AdamOptimizer(
+            learning_rate=learning_rate).minimize(loss)
+        return optimizer
