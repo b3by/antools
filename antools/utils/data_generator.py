@@ -147,6 +147,18 @@ def generate_input(dataset, train_dst, test_dst, crds, target_sensor,
     test.to_csv(test_dst, index=None, header=True)
 
 
+def generate_datasets(Flags, exercises=None, max_files=-1, test_size=0.2):
+    """Generate datasets from flags
+
+    This method provides a shortcut to call the generate_input method, without
+    passing all the arguments one by one.
+    """
+    generate_input(Flags.dataset_location, Flags.train, Flags.test,
+                   Flags.coordinates, Flags.sensors, Flags.window_size,
+                   Flags.stride, exercises=Flags.exercises,
+                   max_files=max_files, test_size=test_size)
+
+
 def get_tf_train_test(train_file_loc, test_file_loc, height, width, depth):
     """Get training and testing datasets
 
