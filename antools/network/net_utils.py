@@ -16,7 +16,7 @@ def generate_weights(shape, name='W'):
     This method generates weights of the specified shape. Weights are
     initialized with a truncated normal with 0.1 as standard deviation.
     """
-    initial = tf.truncated_normal(shape, stddev=0.1)
+    initial = tf.truncated_normal(shape, stddev=0.2)
     return tf.Variable(initial, name=name)
 
 
@@ -127,9 +127,9 @@ def depth_conv2d_layer(x, kernel, name, padding='SAME'):
         conv = tf.nn.depthwise_conv2d(x, w, strides, padding=padding)
         act = tf.nn.relu(tf.add(conv, b))
 
-        tf.summary.histogram('weights', w)
-        tf.summary.histogram('biases', b)
-        tf.summary.histogram('activations', act)
+        # tf.summary.histogram('weights', w)
+        # tf.summary.histogram('biases', b)
+        # tf.summary.histogram('activations', act)
 
         return act
 
@@ -174,7 +174,7 @@ def softmax_layer(x, number_labels, name):
         return tf.nn.softmax(tf.matmul(x, weights) + biases)
 
 
-def cross_entropy_loss(predicted, ground, name, regularize=False):
+def cross_entropy_loss(logits, labels, name, regularize=False):
     """Calculate corss entropy
 
     This method calculates the cross entropy for a vector of predictions.
@@ -182,18 +182,41 @@ def cross_entropy_loss(predicted, ground, name, regularize=False):
 
     Arguments:
 
-    predicted -- the tensor of predicted values
-    ground -- the tensor of ground truth for the points
+    logits -- the tensor of predicted values
+    labels -- the tensor of ground truth for the points
     name -- the scope name of the loss calculation
     regularize -- whether L2 regularization should be used (defaulted to False)
     """
     with tf.name_scope(name):
-        loss = -tf.reduce_sum(ground * tf.log(predicted))
+        xentropy = -tf.reduce_sum(labels * tf.log(logits),
+                                  reduction_indices=[1])
+
+        loss = tf.reduce_mean(xentropy)
 
         if regularize:
             loss = tf.nn.l2_loss(loss)
 
         return loss
+
+
+def soft_cross_entropy_loss(last_layer, labels, name):
+    """Calculate cross entropy after softmax
+
+    This method returns the cross entropy loss computed over a bunch of logits.
+
+    Arguments:
+
+    last_layer -- the tensor of the unnormalized log probabilities
+    labels -- the tensor of the ground truth
+    name -- the scope name
+    """
+    label_number = labels.shape[1].value
+    with tf.name_scope(name):
+        weights = generate_weights([last_layer.shape[1].value, label_number])
+        biases = generate_biases([label_number])
+        logits = tf.matmul(last_layer, weights) + biases
+        xentropy = tf.softmax_cross_entropy(logits=logits, labels=labels)
+        return xentropy
 
 
 def adam_backprop(loss, learning_rate, name):
@@ -209,9 +232,10 @@ def adam_backprop(loss, learning_rate, name):
     """
     with tf.name_scope(name):
         optimizer = tf.train.AdamOptimizer(
-            learning_rate=learning_rate).minimize(loss)
+            learning_rate=learning_rate)
+        tf.summary.scalar('learning_rate', optimizer._lr)
 
-        return optimizer
+        return optimizer.minimize(loss)
 
 
 def batchnorm_layer(x, n_out, is_train, name):
@@ -243,6 +267,6 @@ def batchnorm_layer(x, n_out, is_train, name):
                             (ema.average(batch_mean), ema.average(batch_var)))
 
         normed = tf.nn.batch_normalization(x, mean, var, beta, gamma, 1e-3)
-        tf.summary.histogram('norm_activations', normed)
+        # tf.summary.histogram('norm_activations', normed)
 
         return normed

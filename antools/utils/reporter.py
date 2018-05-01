@@ -80,15 +80,29 @@ class Reporter():
         else:
             start = self.report['start_time']
 
-        iteration['elapsed'] = end - start
-        iteration['elapsed_natural'] = humanize.naturaldelta(
-            time.mktime(end.timetuple() - time.mktime(start.timetuple())))
+        elapsed, elapsed_natural = self.get_elapsed(start, end)
+        iteration['elapsed'] = elapsed
+        iteration['elapsed_natural'] = elapsed_natural
 
         self.report['iterations'].append(iteration)
 
     def dump_report(self):
+        end = datetime.datetime.now()
+        start = self.report['start_time']
+        elapsed, elapsed_natural = self.get_elapsed(start, end)
+
+        self.report['elapsed'] = elapsed
+        self.report['elapsed_natural'] = elapsed_natural
+
         with open(self.destination, 'w') as r:
             json.dump(self.report, r, default=self.__convert_dates__, indent=2)
+
+    def get_elapsed(self, start, end):
+        elapsed = end - start
+        elapsed_natural = humanize.naturaldelta(
+            time.mktime(end.timetuple()) - time.mktime(start.timetuple()))
+
+        return elapsed, elapsed_natural
 
     def __iter__(self):
         for k in self.report:
@@ -101,3 +115,11 @@ class Reporter():
     def __convert_dates__(self, o):
         if isinstance(o, datetime.datetime):
             return o.__str__()
+        else:
+            try:
+                return float(o)
+            except Exception:
+                try:
+                    return int(o)
+                except Exception:
+                    return str(o)
