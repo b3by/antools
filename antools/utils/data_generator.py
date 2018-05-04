@@ -50,7 +50,8 @@ def next_window(signals, window_size, stride):
         c_win += stride
 
 
-def get_win(exercise_file, crds, target_sensors, window_size, stride):
+def get_win(exercise_file, crds, target_sensors, window_size, stride,
+            normalize=None):
     """Extract windows
 
     This method returns all the windows contained in a single exercise file.
@@ -68,6 +69,18 @@ def get_win(exercise_file, crds, target_sensors, window_size, stride):
     exercise = pd.read_csv(exercise_file, sep=',')
     cls = ['acc_x_', 'acc_y_', 'acc_z_', 'gyro_x_', 'gyro_y_', 'gyro_z_']
     axes = ['x', 'y', 'z']
+
+    ccc = list(exercise.columns)
+
+    if normalize == 'minmax':
+        for col in ccc:
+            exercise[col] = (exercise[col] -
+                             exercise[col].min()) / (exercise[col].max() -
+                                                     exercise[col].min())
+    elif normalize == 'zscore':
+        col_zscore = col + '_zscore'
+        exercise[col_zscore] = (exercise[col] -
+                                exercise[col].mean())/exercise[col].std(ddof=0)
 
     all_signals = []
 
@@ -117,7 +130,7 @@ def get_win(exercise_file, crds, target_sensors, window_size, stride):
 
 def generate_input(dataset, train_dst, test_dst, crds, target_sensor,
                    window_size, stride, exercises=None, max_files=-1,
-                   test_size=0.2):
+                   test_size=0.2, normalize=None):
     """Generate train and test datasets, write them to file
 
     This method parses all the files in a given dataset, and aggregates them
@@ -137,7 +150,8 @@ def generate_input(dataset, train_dst, test_dst, crds, target_sensor,
         all_files = all_files[:max_files]
 
     for item in tqdm(all_files, desc='Extracting windows'):
-        d, s = get_win(item[0], item[1], target_sensor, window_size, stride)
+        d, s = get_win(item[0], item[1], target_sensor, window_size, stride,
+                       normalize=normalize)
         frames.append(d)
 
     final_frame = pd.concat(frames)
@@ -147,7 +161,8 @@ def generate_input(dataset, train_dst, test_dst, crds, target_sensor,
     test.to_csv(test_dst, index=None, header=True)
 
 
-def generate_datasets(Flags, exercises=None, max_files=-1, test_size=0.2):
+def generate_datasets(Flags, exercises=None, max_files=-1, test_size=0.2,
+                      normalize=None):
     """Generate datasets from flags
 
     This method provides a shortcut to call the generate_input method, without
@@ -156,7 +171,8 @@ def generate_datasets(Flags, exercises=None, max_files=-1, test_size=0.2):
     generate_input(Flags.dataset_location, Flags.train, Flags.test,
                    Flags.coordinates, Flags.sensors, Flags.window_size,
                    Flags.stride, exercises=Flags.exercises,
-                   max_files=max_files, test_size=test_size)
+                   max_files=max_files, test_size=test_size,
+                   normalize=normalize)
 
 
 def get_tf_train_test(train_file_loc, test_file_loc, height, width, depth):
