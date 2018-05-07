@@ -61,19 +61,25 @@ def get_win(exercise_file, crds, target_sensors, window_size, stride,
     Arguments:
 
     exercise_file -- the exercise file containing all the signals
-    crds -- location of the coordinates file
+    crds -- the coordinates for the current exercise
     target_sensors -- the sensors for which the signals should be included
     window_size -- the size of each window
     stride -- stride between subsequent windows
     """
     exercise = pd.read_csv(exercise_file, sep=',')
+    exercise = exercise.dropna(axis=0)
+
+    if exercise.isnull().any().any():
+        print('NAN FOUND')
+        print(exercise_file)
+
     cls = ['acc_x_', 'acc_y_', 'acc_z_', 'gyro_x_', 'gyro_y_', 'gyro_z_']
     axes = ['x', 'y', 'z']
 
-    ccc = list(exercise.columns)
+    col_list = list(exercise.columns)
 
     if normalize == 'minmax':
-        for col in ccc:
+        for col in col_list:
             exercise[col] = (exercise[col] -
                              exercise[col].min()) / (exercise[col].max() -
                                                      exercise[col].min())

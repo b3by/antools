@@ -1,4 +1,5 @@
 import unittest
+import os
 
 from antools.utils import data_generator
 
@@ -44,6 +45,33 @@ class TestDataGeneratorUtils(unittest.TestCase):
         win = next(gen)
         self.assertEqual(
             win, [2, 3, 4, 5, 6, 12, 13, 14, 15, 16, 22, 23, 24, 25, 26])
+
+    def test_get_win(self):
+        test_file = os.path.join(os.path.dirname(__file__),
+                                 'test_signal.csv')
+        test_c = [319, 644,
+                  788, 1125,
+                  1287, 1598,
+                  1745, 2086,
+                  2245, 2554,
+                  2690, 3009,
+                  3121, 3430,
+                  3565, 3852,
+                  3961, 4257,
+                  4343, 4684]
+        crds = list(zip(test_c, test_c[1:]))
+
+        df, _ = data_generator.get_win(test_file, crds, ['arm'], 40, 1)
+        self.assertEqual(4784, len(df))
+
+        df, _ = data_generator.get_win(test_file, crds, ['arm'], 40, 2)
+        self.assertEqual(2392, len(df))
+
+        df, _ = data_generator.get_win(test_file, crds, ['arm'], 40, 3)
+        self.assertEqual(1595, len(df))
+
+        df, _ = data_generator.get_win(test_file, crds, ['arm'], 50, 7)
+        self.assertEqual(682, len(df))
 
 
 if __name__ == '__main__':
