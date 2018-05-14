@@ -1,5 +1,6 @@
 import ast
 import os
+import collections
 
 import pandas as pd
 import numpy as np
@@ -50,8 +51,8 @@ def next_window(signals, window_size, stride):
         c_win += stride
 
 
-def get_win(exercise_file, crds, target_sensors, window_size, stride,
-            normalize=None):
+def get_win(exercise_file, crds, sensors, window_size, stride,
+            normalize=None, binary=False, win_t=0.25):
     """Extract windows
 
     This method returns all the windows contained in a single exercise file.
@@ -62,81 +63,74 @@ def get_win(exercise_file, crds, target_sensors, window_size, stride,
 
     exercise_file -- the exercise file containing all the signals
     crds -- the coordinates for the current exercise
-    target_sensors -- the sensors for which the signals should be included
+    sensors -- the sensors for which the signals should be included
     window_size -- the size of each window
     stride -- stride between subsequent windows
     """
-    exercise = pd.read_csv(exercise_file, sep=',')
-    exercise = exercise.dropna(axis=0)
-
-    if exercise.isnull().any().any():
-        print('NAN FOUND')
-        print(exercise_file)
+    exr = pd.read_csv(exercise_file, sep=',')
+    exr = exr.dropna(axis=0)
 
     cls = ['acc_x_', 'acc_y_', 'acc_z_', 'gyro_x_', 'gyro_y_', 'gyro_z_']
-    axes = ['x', 'y', 'z']
 
-    col_list = list(exercise.columns)
+    col_list = list(exr.columns)
 
     if normalize == 'minmax':
         for col in col_list:
-            exercise[col] = (exercise[col] -
-                             exercise[col].min()) / (exercise[col].max() -
-                                                     exercise[col].min())
+            exr[col] = (exr[col] -
+                        exr[col].min()) / (exr[col].max() - exr[col].min())
     elif normalize == 'zscore':
-        col_zscore = col + '_zscore'
-        exercise[col_zscore] = (exercise[col] -
-                                exercise[col].mean())/exercise[col].std(ddof=0)
+        for col in col_list:
+            exr[col] = (exr[col] - exr[col].mean()) / exr[col].std(ddof=0)
 
     all_signals = []
 
-    for t in target_sensors:
-        all_signals += [exercise[i + t] for i in cls]
+    for t in sensors:
+        all_signals += [exr[i + t] for i in cls]
 
-    silent_windows = []
-    switch_windows = []
-    dynamo_windows = []
+    cols = [f'{a}{i}' for a in cls for i in range(window_size * len(sensors))]
+    cols.append('label')
+
+    df = pd.DataFrame(columns=cols)
+    cnt = collections.Counter()
+
+    win_thresh = int(window_size * win_t) * 0
 
     for i, win in enumerate(next_window(all_signals, window_size, stride)):
-        window_start = i
-        window_end = i + window_size
+        window_start = i * stride
+        window_end = window_start + window_size
 
-        if any(c[0] < window_start and c[1] > window_end for c in crds):
-            dynamo_windows.append(win)
-        elif any((c[0] >= window_start and c[0] <= window_end) or
-                 (c[1] >= window_start and c[1] <= window_end) for c in crds):
-            switch_windows.append(win)
+        if binary:
+            if any(c[0] < (window_end - win_thresh) and c[1] > window_start +
+                   win_thresh for c in crds):
+                # movement
+                df.loc[len(df)] = dict(zip(cols, win + [1]))
+                cnt.update([1])
+            else:
+                # silent
+                df.loc[len(df)] = dict(zip(cols, win + [0]))
+                cnt.update([0])
         else:
-            silent_windows.append(win)
-
-    columns = ['acc_' + a + '_' + str(i) for a in axes
-               for i in range(window_size * len(target_sensors))]
-    columns += ['gyro_' + a + '_' + str(i) for a in axes
-                for i in range(window_size * len(target_sensors))]
-
-    columns.append('label')
-
-    df = pd.DataFrame(columns=columns)
-
-    for i in silent_windows:
-        i.append(0)
-        df = df.append(dict(zip(columns, i)), ignore_index=True)
-
-    for i in switch_windows:
-        i.append(1)
-        df = df.append(dict(zip(columns, i)), ignore_index=True)
-
-    for i in dynamo_windows:
-        i.append(2)
-        df = df.append(dict(zip(columns, i)), ignore_index=True)
+            if any(c[0] < window_start and c[1] > window_end for c in crds):
+                df.loc[len(df)] = dict(zip(cols, win + [2]))
+                cnt.update([2])
+            elif any((c[0] >= window_start and c[0] <= window_end) or
+                     (c[1] >= window_start and c[1] <= window_end)
+                     for c in
+                     crds):
+                df.loc[len(df)] = dict(zip(cols, win + [1]))
+                cnt.update([1])
+            else:
+                df.loc[len(df)] = dict(zip(cols, win + [0]))
+                cnt.update([0])
 
     df['label'] = df['label'].astype(int)
-    return df, (len(silent_windows), len(switch_windows), len(dynamo_windows))
+
+    return df, tuple(cnt.values())
 
 
 def generate_input(dataset, train_dst, test_dst, crds, target_sensor,
                    window_size, stride, exercises=None, max_files=-1,
-                   test_size=0.2, normalize=None):
+                   test_size=0.2, normalize=None, binary=False):
     """Generate train and test datasets, write them to file
 
     This method parses all the files in a given dataset, and aggregates them
@@ -157,7 +151,7 @@ def generate_input(dataset, train_dst, test_dst, crds, target_sensor,
 
     for item in tqdm(all_files, desc='Extracting windows'):
         d, s = get_win(item[0], item[1], target_sensor, window_size, stride,
-                       normalize=normalize)
+                       normalize=normalize, binary=binary)
         frames.append(d)
 
     final_frame = pd.concat(frames)
@@ -168,7 +162,7 @@ def generate_input(dataset, train_dst, test_dst, crds, target_sensor,
 
 
 def generate_datasets(Flags, exercises=None, max_files=-1, test_size=0.2,
-                      normalize=None):
+                      normalize=None, binary=False):
     """Generate datasets from flags
 
     This method provides a shortcut to call the generate_input method, without
@@ -178,7 +172,7 @@ def generate_datasets(Flags, exercises=None, max_files=-1, test_size=0.2,
                    Flags.coordinates, Flags.sensors, Flags.window_size,
                    Flags.stride, exercises=Flags.exercises,
                    max_files=max_files, test_size=test_size,
-                   normalize=normalize)
+                   normalize=normalize, binary=binary)
 
 
 def get_tf_train_test(train_file_loc, test_file_loc, height, width, depth):
