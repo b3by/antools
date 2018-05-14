@@ -87,7 +87,10 @@ def get_win(exercise_file, crds, sensors, window_size, stride,
     for t in sensors:
         all_signals += [exr[i + t] for i in cls]
 
-    cols = [f'{a}{i}' for a in cls for i in range(window_size * len(sensors))]
+    cols = ['{}{}'.format(a, i)
+            for a in cls
+            for i in range(window_size * len(sensors))]
+
     cols.append('label')
 
     df = pd.DataFrame(columns=cols)
