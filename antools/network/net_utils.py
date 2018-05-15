@@ -128,9 +128,9 @@ def depth_conv2d_layer(x, kernel, name, padding='SAME'):
         conv = tf.nn.depthwise_conv2d(x, w, strides, padding=padding)
         act = tf.nn.relu(tf.add(conv, b))
 
-        # tf.summary.histogram('weights', w)
-        # tf.summary.histogram('biases', b)
-        # tf.summary.histogram('activations', act)
+        tf.summary.histogram('weights', w)
+        tf.summary.histogram('biases', b)
+        tf.summary.histogram('activations', act)
 
         return act
 
@@ -220,7 +220,7 @@ def soft_cross_entropy_loss(last_layer, labels, name):
         return xentropy
 
 
-def adam_backprop(loss, learning_rate, name):
+def adam_backprop(loss, learning_rate, global_step, name):
     """Run backpropagation step
 
     This method runs the backpropagation step with the Adam optimizer.
@@ -234,7 +234,6 @@ def adam_backprop(loss, learning_rate, name):
     with tf.name_scope(name):
         beta1 = 0.3
         beta2 = 0.7
-        global_step = tf.Variable(0, trainable=False)
         optimizer = tf.train.AdamOptimizer(
             learning_rate=learning_rate, epsilon=0.1, beta1=0.3, beta2=0.7)
 
@@ -242,7 +241,7 @@ def adam_backprop(loss, learning_rate, name):
         beta2_power = tf.pow(beta2, tf.cast(global_step, tf.float32))
         lr = (optimizer._lr * math_ops.sqrt(1.0 - beta2_power) / (1.0 -
                                                                   beta1_power))
-        # tf.summary.scalar('learning_rate', lr)
+        tf.summary.scalar('learning_rate', lr)
 
         return optimizer.minimize(loss, global_step=global_step)
 
@@ -276,6 +275,6 @@ def batchnorm_layer(x, n_out, is_train, name):
                             (ema.average(batch_mean), ema.average(batch_var)))
 
         normed = tf.nn.batch_normalization(x, mean, var, beta, gamma, 1e-3)
-        # tf.summary.histogram('norm_activations', normed)
+        tf.summary.histogram('norm_activations', normed)
 
         return normed
