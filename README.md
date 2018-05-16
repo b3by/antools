@@ -1,7 +1,7 @@
 # antools
 
 [![forthebadge](https://forthebadge.com/images/badges/no-ragrets.svg)](https://forthebadge.com)
-![Travis](https://img.shields.io/travis/b3by/antools.svg?style=for-the-badge)
+[![Travis](https://img.shields.io/travis/b3by/antools.svg?style=for-the-badge)](https://travis-ci.org/b3by/antools)
 
 A bit of boilerplating for data science projects.
 
