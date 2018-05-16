@@ -5,12 +5,12 @@ name = "pypi"
 
 [packages]
 humanize = "*"
-tensorflow = "*"
 pandas = "*"
 tqdm = "*"
 sklearn = "*"
 scipy = "*"
 matplotlib = "*"
+tensorflow = "*"
 
 [dev-packages]
 coverage = "*"
