@@ -99,6 +99,65 @@ The result of the previous code will look like this:
 }
 ```
 
+### `net_utils`
+This module contains utilities for the implementation of models. The APIs are
+quite simple, and do not involve classes of any sort.
+
+The high level functions in this module allow to create layers of different
+kinds. For instance, the following code generates a sandwich of three
+convolutional layers, interleaved with max pooling layers. Batchnorm is also
+included in the stack.
+
+```python
+from types import SimpleNamespace
+
+from antools.network import net_utils
+
+kernels = [
+    SimpleNamespace(kernel=[4, 4], strides=[1, 1, 1, 1], depth=10),
+    SimpleNamespace(kernel=[3, 3], strides=[1, 1, 1, 1], depth=2),
+    SimpleNamespace(kernel=[2, 2], strides=[1, 1, 1, 1], depth=1)
+]
+
+pools = [
+    SimpleNamespace(kernel=[1, 3, 3, 1], strides=[1, 1, 1, 1]),
+    SimpleNamespace(kernel=[1, 2, 2, 1], strides=[1, 1, 1, 1]),
+    SimpleNamespace(kernel=[1, 2, 2, 1], strides=[1, 1, 1, 1])
+]
+
+# X -- input tensor
+layers = [X]
+
+for idx, (k, p) in enumerate(zip(kernels, pools)):
+    ch = layers[-1].shape[3].value
+
+    c_name = 'conv{}'.format(idx + 1)
+    n_name = 'norm{}'.format(idx + 1)
+    p_name = 'pool{}'.format(idx + 1)
+
+    c = net_utils.depth_conv2d_layer(layers[-1], k, c_name)
+    n = net_utils.batchnorm_layer(c, ch * k.depth, is_train, n_name)
+    m = net_utils.maxpool_layer(n, p, p_name)
+
+    layers.append(c)
+    layers.append(n)
+    layers.append(m)
+
+# at this points, all the layers are saved in the layers list
+```
+
+Another high level API is `dense_layers`, which allows to generate fully
+connected stacks by providing the number of units and the dropout probabiliy.
+
+```python
+# x -- input tensor
+# keep_prob -- tensor variable for the dropout
+
+units = (500, 250, 125)
+dense_output = net_utils.dense_layers(X, units, keep_prob, 'dense',
+                                      activation='tanh')
+```
+
 ## Installation
 To install, use `pip` (a virtual environment is highly recommended):
 
