@@ -103,6 +103,19 @@ The result of the previous code will look like this:
 This module contains utilities for the implementation of models. The APIs are
 quite simple, and do not involve classes of any sort.
 
+The available APIs include:
+
+- [`dense_layer(x, number_units, name, activation='relu')`](https://github.com/b3by/antools/blob/0aa864f8c2b5b8fe0db66e28f2237914ac8a7014/antools/network/net_utils.py#L34)
+- [`drop_layer(x, keep_probability, name)`](https://github.com/b3by/antools/blob/0aa864f8c2b5b8fe0db66e28f2237914ac8a7014/antools/network/net_utils.py#L59)
+- [`dense_layers(x, units, keep_probability, name_prefix, activation='relu')`](https://github.com/b3by/antools/blob/0aa864f8c2b5b8fe0db66e28f2237914ac8a7014/antools/network/net_utils.py#L77)
+- [`depth_conv2d_layer(x, kernel, name, padding='SAME')`](https://github.com/b3by/antools/blob/0aa864f8c2b5b8fe0db66e28f2237914ac8a7014/antools/network/net_utils.py#L106)
+- [`maxpool_layer(x, kernel, name, padding='VALID')`](https://github.com/b3by/antools/blob/0aa864f8c2b5b8fe0db66e28f2237914ac8a7014/antools/network/net_utils.py#L138)
+- [`softmax_layer(x, number_labels, name)`](https://github.com/b3by/antools/blob/0aa864f8c2b5b8fe0db66e28f2237914ac8a7014/antools/network/net_utils.py#L158)
+- [`cross_entropy_loss(logits, labels, name, regularize=False)`](https://github.com/b3by/antools/blob/0aa864f8c2b5b8fe0db66e28f2237914ac8a7014/antools/network/net_utils.py#L178)
+- [`soft_cross_entropy_loss(last_layer, labels, name)`](https://github.com/b3by/antools/blob/0aa864f8c2b5b8fe0db66e28f2237914ac8a7014/antools/network/net_utils.py#L203)
+- [`adam_backprop(loss, learning_rate, global_step, name)`](https://github.com/b3by/antools/blob/0aa864f8c2b5b8fe0db66e28f2237914ac8a7014/antools/network/net_utils.py#L223)
+- [`batchnorm_layer(x, n_out, is_train, name)`](https://github.com/b3by/antools/blob/0aa864f8c2b5b8fe0db66e28f2237914ac8a7014/antools/network/net_utils.py#L249)
+
 The high level functions in this module allow to create layers of different
 kinds. For instance, the following code generates a sandwich of three
 convolutional layers, interleaved with max pooling layers. Batchnorm is also
@@ -157,6 +170,34 @@ units = (500, 250, 125)
 dense_output = net_utils.dense_layers(X, units, keep_prob, 'dense',
                                       activation='tanh')
 ```
+
+### `clprint`
+This module is quite useless. It lets you print colored stuff on the terminal.
+Here follows an example script.
+
+```python
+from antools.utils import clprint
+
+print(clprint.bold('This text is bold... it has guts!'))
+print(clprint.ok('This text is green... such envy!'))
+print(clprint.info('This text is blue... is it Monday already?'))
+print(clprint.warn('This text is orange... because oranges.'))
+print(clprint.err('This text is red... the batch better have mah money!'))
+```
+
+![c1](https://raw.githubusercontent.com/b3by/antools/master/images/color1.png)
+
+Alternatively, messages can be decorated with a prefix:
+
+```python
+from antools.utils import clprint
+
+clprint.ptinfo('This is an info during a run...')
+clprint.ptrun('Something hairy happened?')
+clprint.ptok('Oh no, my bad, everything is alright.')
+```
+
+![c2](https://raw.githubusercontent.com/b3by/antools/master/images/color2.png)
 
 ## Installation
 To install, use `pip` (a virtual environment is highly recommended):
