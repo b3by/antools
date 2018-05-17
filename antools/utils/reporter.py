@@ -114,7 +114,6 @@ class Reporter():
         num_iterations = len(self.report['iterations'])
 
         if self.autosave and num_iterations % self.autosave_count == 0:
-            print('autodumping...')
             self.dump_report()
 
     def dump_report(self):
