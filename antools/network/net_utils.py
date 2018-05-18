@@ -317,7 +317,7 @@ def freeze_model(checkpoint_name, model_name, destination, node_names,
     conv = tf.graph_util.convert_variables_to_constants(session, graph_def,
                                                         node_names)
 
-    tf.train.write_graph(conv, destination, model_name, as_text=True)
+    tf.train.write_graph(conv, destination, model_name, as_text=as_text)
 
 
 def unfreeze_model(model_file, x_name, y_name, others, name):
