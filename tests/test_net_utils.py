@@ -103,7 +103,15 @@ class TestNetworkUtils(unittest.TestCase):
         self.assertEqual(test_soft.shape[1], 3)
 
     def test_cross_entropy(self):
-        # should be implemented!
+        # TODO: should be implemented!
+        pass
+
+    def test_freeze_model(self):
+        # TODO: should be implemented!
+        pass
+
+    def test_unfreeze_model(self):
+        # TODO: should be implemented!
         pass
 
 
