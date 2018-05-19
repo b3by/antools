@@ -3,7 +3,10 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 
 
-def plot_windows(df_location, win_labels, window_size, stride):
+def plot_windows(df_location, win_labels, window_size, stride, crds=None):
+    if crds is None:
+        crds = []
+
     plt.figure(figsize=(20, 10))
 
     exr = pd.read_csv(df_location, sep=',')
@@ -31,6 +34,9 @@ def plot_windows(df_location, win_labels, window_size, stride):
     orange_patch = mpatches.Patch(color='C1', label='Class 1')
     green_patch = mpatches.Patch(color='C2', label='Class 0')
     red_patch = mpatches.Patch(color='C3', label='Class 2')
+
+    for xc in crds:
+        plt.axvline(x=xc, color='k', linestyle='--')
 
     plt.xlabel('Timestamp')
     plt.ylabel('Acceleration y')
