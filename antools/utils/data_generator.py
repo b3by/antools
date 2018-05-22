@@ -133,7 +133,8 @@ def get_win(exercise_file, crds, sensors, window_size, stride,
 
 def generate_input(dataset, train_dst, test_dst, crds, target_sensor,
                    window_size, stride, exercises=None, max_files=-1,
-                   test_size=0.2, normalize=None, binary=False):
+                   test_size=0.2, normalize=None, binary=False,
+                   on_patient=True):
     """Generate train and test datasets, write them to file
 
     This method parses all the files in a given dataset, and aggregates them
@@ -147,21 +148,55 @@ def generate_input(dataset, train_dst, test_dst, crds, target_sensor,
     crds -- coordinates file
     """
     all_files = get_files(dataset, crds, exercises)
-    frames = []
+    subjects = {}
+
+    for f in all_files:
+        f_name = os.path.basename(f[0])
+        s_id = int(f_name.split('.')[1])
+
+        if subjects.get(s_id, None) is None:
+            subjects[s_id] = [f]
+        else:
+            subjects[s_id].append(f)
 
     if max_files > 0:
         all_files = all_files[:max_files]
 
-    for item in tqdm(all_files, desc='Extracting windows'):
-        d, s = get_win(item[0], item[1], target_sensor, window_size, stride,
-                       normalize=normalize, binary=binary)
-        frames.append(d)
+    subs = list(subjects.keys())
+    train_s, test_s = train_test_split(subs)
 
-    final_frame = pd.concat(frames)
-    train, test = train_test_split(final_frame, test_size=test_size)
+    train_files = []
+    for train_sub_id in train_s:
+        train_files += subjects[train_sub_id]
 
-    train.to_csv(train_dst, index=None, header=True)
-    test.to_csv(test_dst, index=None, header=True)
+    test_files = []
+    for test_sub_id in test_s:
+        test_files += subjects[test_sub_id]
+
+    print('Training subjects: {}'.format(train_s))
+    print('Testing subjects: {}'.format(test_s))
+
+    tqdm.monitor_interval = 0
+
+    train_frames = []
+    for train_file in tqdm(train_files, desc='Training files'):
+        d, s = get_win(train_file[0], train_file[1], target_sensor,
+                       window_size, stride, normalize=normalize, binary=binary)
+        train_frames.append(d)
+
+    test_frames = []
+    for test_file in tqdm(test_files, desc='Testing files'):
+        d, s = get_win(test_file[0], test_file[1], target_sensor, window_size,
+                       stride, normalize=normalize, binary=binary)
+        test_frames.append(d)
+
+    final_train = pd.concat(train_frames)
+    final_test = pd.concat(test_frames)
+
+    final_train.to_csv(train_dst, index=None, header=True)
+    final_test.to_csv(test_dst, index=None, header=True)
+
+    return train_s, test_s
 
 
 def generate_datasets(Flags, exercises=None, max_files=-1, test_size=0.2,
@@ -171,11 +206,11 @@ def generate_datasets(Flags, exercises=None, max_files=-1, test_size=0.2,
     This method provides a shortcut to call the generate_input method, without
     passing all the arguments one by one.
     """
-    generate_input(Flags.dataset_location, Flags.train, Flags.test,
-                   Flags.coordinates, Flags.sensors, Flags.window_size,
-                   Flags.stride, exercises=Flags.exercises,
-                   max_files=max_files, test_size=test_size,
-                   normalize=normalize, binary=binary)
+    return generate_input(Flags.dataset_location, Flags.train, Flags.test,
+                          Flags.coordinates, Flags.sensors, Flags.window_size,
+                          Flags.stride, exercises=Flags.exercises,
+                          max_files=max_files, test_size=test_size,
+                          normalize=normalize, binary=binary)
 
 
 def get_tf_train_test(train_file_loc, test_file_loc, height, width, depth):

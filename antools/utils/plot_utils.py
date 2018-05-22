@@ -3,15 +3,16 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 
 
-def plot_windows(df_location, win_labels, window_size, stride, crds=None):
+def plot_windows(df_location, win_labels, window_size, stride, comp,
+                 crds=None):
+    plt.figure(figsize=(20, 10), dpi=300)
+
     if crds is None:
         crds = []
 
-    plt.figure(figsize=(20, 10))
-
     exr = pd.read_csv(df_location, sep=',')
     exr = exr.dropna(axis=0)
-    exr['acc_y_arm'].plot()
+    plt.plot(exr[comp])
 
     for idx, lb in enumerate(win_labels):
         start_interval = idx * stride
@@ -41,4 +42,5 @@ def plot_windows(df_location, win_labels, window_size, stride, crds=None):
     plt.xlabel('Timestamp')
     plt.ylabel('Acceleration y')
     plt.legend(handles=[green_patch, red_patch, orange_patch])
-    plt.savefig('./yoooooolo.png', bbox_inches='tight')
+    plt.savefig('./yoooooolo.png', bbox_inches='tight', dpi=600,
+                figsize=(30, 15))
