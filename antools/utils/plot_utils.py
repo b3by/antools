@@ -44,3 +44,4 @@ def plot_windows(df_location, win_labels, window_size, stride, comp, dst,
     plt.legend(handles=[green_patch, red_patch, orange_patch])
     plt.savefig(dst, bbox_inches='tight', dpi=600,
                 figsize=(30, 15))
+    plt.close('all')
