@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 
 
-def plot_windows(df_location, win_labels, window_size, stride, comp,
+def plot_windows(df_location, win_labels, window_size, stride, comp, dst,
                  crds=None):
     plt.figure(figsize=(20, 10), dpi=300)
 
@@ -42,5 +42,5 @@ def plot_windows(df_location, win_labels, window_size, stride, comp,
     plt.xlabel('Timestamp')
     plt.ylabel('Acceleration y')
     plt.legend(handles=[green_patch, red_patch, orange_patch])
-    plt.savefig('./yoooooolo.png', bbox_inches='tight', dpi=600,
+    plt.savefig(dst, bbox_inches='tight', dpi=600,
                 figsize=(30, 15))

@@ -16,6 +16,7 @@ import datetime
 import time
 import json
 import collections
+import os
 
 import humanize
 
@@ -37,8 +38,20 @@ class Reporter():
         self.destination = destination
         self.autosave = autosave
         self.autosave_count = autosave_count
-        self.report = collections.OrderedDict()
-        self.__run = False
+
+        if os.path.isfile(self.destination):
+            with open(self.destination, 'r') as f:
+                self.report = collections.OrderedDict(
+                    json.loads(f.read()))
+                self.report['start_time'] = datetime.datetime.strptime(
+                    self.report['start_time'], '%Y-%m-%d %H:%M:%S.%f')
+                for it in self.report['iterations']:
+                    it['end_time'] = datetime.datetime.strptime(
+                        self.report['end_time'], '%Y-%m-%d %H:%M:%S.%f')
+                self.__run = True
+        else:
+            self.report = collections.OrderedDict()
+            self.run = False
 
     def spawn_run(self, run_name):
         """Spawn a run within the report
@@ -150,3 +163,13 @@ class Reporter():
 
     def __convert_dates(self, o):
         return o.__str__() if isinstance(o, datetime.datetime) else str(o)
+
+    def __date_hook(self, d):
+        for (key, value) in d.items():
+            try:
+                d[key] = datetime.datetime.strptime(value,
+                                                    '%Y-%m-%d %H:%M:%S.%f')
+            except Exception:
+                pass
+
+        return d
