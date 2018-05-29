@@ -22,36 +22,69 @@ import humanize
 
 
 class Reporter():
+    """Reporter class for automated report generation
 
-    def __init__(self, destination, autosave=False, autosave_count=0):
+    This class provides facilities for logging and storing results of iterative
+    executions. A reporter can be set to automatically dump the results after
+    a specific number of executions, and can easily restore a previously
+    started report.
+
+    Attributes
+    ----------
+    report : collections.OrderedDict
+        This attribute contains the report itself. In order to preserve the
+        inclusion order of the items in the report, an ordered dictionary is
+        used.
+    destination : str
+        The destination of the report to dump. It should specify a full path
+        with the inclusion of the file name.
+    autosave : bool
+        A flag that triggers the autosave after a specified number of
+        iterations. When set to true, the autosave_count should be not zero.
+    autosave_count : int
+        The number of iterations to wait for the autosave.
+    """
+
+    def __init__(self, destination, restore=True, autosave=False,
+                 autosave_count=0):
         """Create a reporter object
 
         The constructor will initialize all the reporter fields.
 
-        Arguments:
-
-        destination -- the final destination of the report file
-        autosave -- if True, the report will be dumped automatically
-        autosave_count -- the number of iterations after which the report
-                          will be saved (defaulted to 0, no autosave)
+        Parameters
+        ----------
+        destination : str
+            The final destination of the report file.
+        restore : bool
+            If True, an existing report at the given destination will be fully
+            restored.
+        autosave : bool
+            If True, the report will be dumped automatically.
+        autosave_count : int
+            The number of iterations after which the report will be saved
+            automatically. By default, it is set to 0, so no autosave is
+            enabled.
         """
         self.destination = destination
         self.autosave = autosave
         self.autosave_count = autosave_count
 
-        if os.path.isfile(self.destination):
+        if restore and os.path.isfile(self.destination):
             with open(self.destination, 'r') as f:
                 self.report = collections.OrderedDict(
                     json.loads(f.read()))
                 self.report['start_time'] = datetime.datetime.strptime(
                     self.report['start_time'], '%Y-%m-%d %H:%M:%S.%f')
-                for it in self.report['iterations']:
-                    it['end_time'] = datetime.datetime.strptime(
-                        self.report['end_time'], '%Y-%m-%d %H:%M:%S.%f')
+
+                if self.report.get('iterations', None) is not None:
+                    for it in self.report['iterations']:
+                        it['end_time'] = datetime.datetime.strptime(
+                            self.report['end_time'], '%Y-%m-%d %H:%M:%S.%f')
+
                 self.__run = True
         else:
             self.report = collections.OrderedDict()
-            self.run = False
+            self.__run = False
 
     def spawn_run(self, run_name):
         """Spawn a run within the report
@@ -59,41 +92,45 @@ class Reporter():
         This method initializes a run within the report. The run name is
         required.
 
-        Arguments:
-
-        run_name -- the name of the run to create
+        Parameters
+        ---------
+        run_name : str
+            The name of the run to create.
         """
         self.report['run_name'] = run_name
         self.report['start_time'] = datetime.datetime.now()
         self.report['params'] = {}
         self.__run = True
 
-    def add_run_param(self, k, v):
+    def add_run_param(self, key, value):
         """Add new run parameter
 
         This method creates a new parameter for the run. The parameter will be
         included in the 'params' dictionary within the report.
 
-        Arguments:
-
-        k -- the key, that is, the name of the new parameter
-        v -- the value, that is, the value of the new parameter
+        Parameters
+        ----------
+        key
+            The key, that is, the name of the new parameter.
+        value
+            The value, that is, the value of the new parameter.
         """
         self.__validate_run()
-        self.report['params'][k] = v
+        self.report['params'][key] = value
 
-    def add_run_params(self, d):
+    def add_run_params(self, params):
         """Add set of run parameters
 
         This method adds run parameters in bulk, by taking them from the
         provided dictionary.
 
-        Arguments:
-
-        d -- the dictionary to copy within the params dictionary
+        Parameters
+        ----------
+        params : dict
+            The dictionary to copy within the params dictionary.
         """
-        for param in d:
-            self.add_run_param(param, d[param])
+        for param in params:
+            self.add_run_param(param, params[param])
 
     def add_iteration(self, iteration):
         """Add results from an iteration
@@ -102,9 +139,10 @@ class Reporter():
         reporter automatically adds the end time of the iteration, and the
         elapsed time, both in a timestamp format and in a natural fashion.
 
-        Arguments:
-
-        iteration -- a dictionary containing serializable keys
+        Parameters
+        ----------
+        iteration : dict
+            A dictionary containing serializable keys.
         """
         self.__validate_run()
 
@@ -147,6 +185,25 @@ class Reporter():
             json.dump(self.report, r, default=self.__convert_dates, indent=2)
 
     def get_elapsed(self, start, end):
+        """Compute elapsed time between two datetime objects
+
+        This method receives two datetime objects and computes the delta
+        between them. It then returns both the delta and the humanized delta,
+        that is, a string representing the time delta in natural form.
+
+        Parameters
+        ----------
+        start : datetime.datetime
+            The start time of the event that should be measured.
+        end : datetime.datetime
+            The end time of the event that should be measured.
+
+        Returns
+        -------
+        tuple
+            A tuple containing the elapsed time delta as first element and the
+            humanized time delta as second element.
+        """
         elapsed = end - start
         elapsed_natural = humanize.naturaldelta(
             time.mktime(end.timetuple()) - time.mktime(start.timetuple()))
@@ -163,13 +220,3 @@ class Reporter():
 
     def __convert_dates(self, o):
         return o.__str__() if isinstance(o, datetime.datetime) else str(o)
-
-    def __date_hook(self, d):
-        for (key, value) in d.items():
-            try:
-                d[key] = datetime.datetime.strptime(value,
-                                                    '%Y-%m-%d %H:%M:%S.%f')
-            except Exception:
-                pass
-
-        return d

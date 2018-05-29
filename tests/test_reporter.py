@@ -4,6 +4,7 @@ import datetime
 import time
 import json
 import os
+import collections
 
 from antools.utils import reporter
 
@@ -159,6 +160,20 @@ class TestReporter(unittest.TestCase):
         self.assertTrue(os.path.isfile('./tests/wololo.json'))
 
         os.remove('./tests/wololo.json')
+
+    def test_create_from_existing_full(self):
+        r = reporter.Reporter('./tests/test_report.json')
+
+        self.assertIsInstance(r.report['start_time'], datetime.datetime)
+        self.assertTrue(r.report['params']['reset'])
+        self.assertEqual(len(r.report['iterations']), 2)
+        self.assertEqual(r.report['elapsed_natural'], '7 minutes')
+
+    def test_create_from_existing_non_restore(self):
+        r = reporter.Reporter('./tests/test_report.json', restore=False)
+
+        self.assertEqual(r.report, collections.OrderedDict())
+        self.assertIsNone(r.report.get('params', None))
 
 
 if __name__ == '__main__':

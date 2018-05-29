@@ -1,0 +1,73 @@
+{
+  "run_name": "test_run",
+  "start_time": "2018-05-28 19:11:36.255499",
+  "params": {
+    "reset": true,
+    "name": "abd_arm",
+    "train": "./data/feedable/train_abd_arm.csv",
+    "test": "./data/feedable/test_abd_arm.csv",
+    "dataset_location": "./data/converted",
+    "coordinates": "./dataexplorer/coordinates.csv",
+    "checkpoints": "./checkpoints/",
+    "model": "./models/",
+    "logs": "./logs/abd_arm.json",
+    "sensors": [
+      "arm"
+    ],
+    "exercises": [
+      "abd"
+    ],
+    "learning_rate": 0.0001,
+    "epochs": 200,
+    "batch_size": 1024,
+    "dropout_keep_prob": 0.5,
+    "window_size": 30,
+    "stride": 1,
+    "mode": "binary",
+    "hidden_units": [
+      500,
+      250,
+      125
+    ],
+    "device": "0,1",
+    "generate_input": true,
+    "normalize": null,
+    "training_ids": [
+      8,
+      10,
+      13,
+      15,
+      11,
+      12,
+      14
+    ],
+    "testing_ids": [
+      16,
+      9,
+      17
+    ],
+    "input_height": 6,
+    "input_width": 30,
+    "channels": 1,
+    "batches": 134,
+    "total_steps": 26800,
+    "checkpoints_train": "./checkpoints/abd_arm/train",
+    "checkpoints_valid": "./checkpoints/abd_arm/validation",
+    "num_labels": 2
+  },
+  "iterations": [
+    {
+      "type": "validation",
+      "accuracy": "0.89",
+      "epoch": 0
+    },
+    {
+      "type": "validation",
+      "accuracy": "0.91",
+      "epoch": 1
+    }
+  ],
+  "end_time": "2018-05-28 19:19:15.281289",
+  "elapsed": "0:07:39.025790",
+  "elapsed_natural": "7 minutes"
+}
