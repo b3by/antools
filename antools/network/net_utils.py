@@ -1,3 +1,9 @@
+"""Tensorflow utilities
+
+This module provides utilities in support of building neural networks. Some
+abstractions for layer generation are provided, however, full models should
+be built with a bit of care.
+"""
 from functools import reduce
 
 import tensorflow as tf
@@ -7,8 +13,15 @@ from tensorflow.python.ops import math_ops
 activations = {
     'relu': tf.nn.relu,
     'sigmoid': tf.nn.sigmoid,
-    'tanh': tf.nn.tanh
-}
+    'tanh': tf.nn.tanh}
+"""Activation functions to use
+
+This dictionary contains a set of activation functions that can be used when
+building a layer of any kind. Please be aware that some method signatures may
+miss required arguments when using particular activation function. This should
+be addressed properly in the future, when more activation functions will be
+supported.
+"""
 
 
 def generate_weights(shape, name='W'):
@@ -16,6 +29,18 @@ def generate_weights(shape, name='W'):
 
     This method generates weights of the specified shape. Weights are
     initialized with a truncated normal with 0.1 as standard deviation.
+
+    Parameters
+    ----------
+    shape : tuple
+        A tuple containing all the shapes for the weights.
+    name : str
+        The name of the weight variable to generate.
+
+    Returns
+    -------
+    tf.Variable
+        A tensorflow variable.
     """
     initial = tf.truncated_normal(shape, stddev=0.2)
     return tf.Variable(initial, name=name)
@@ -26,6 +51,18 @@ def generate_biases(shape, name='b'):
 
     This method generates biases of the specified shape. Biases are all
     initialized with a 0.1 constant value.
+
+    Parameters
+    ----------
+    shape : tuple
+        A tuple containing all the shapes for the biases.
+    name : str
+        The name of the bias variable to generate.
+
+    Returns
+    -------
+    tf.Variable
+        A tensorflow variable.
     """
     initial = tf.constant(0.1, shape=shape)
     return tf.Variable(initial, name=name)
@@ -39,12 +76,22 @@ def dense_layer(x, number_units, name, activation='relu'):
     has to be provided. The input x will be reshaped to a flat tensor, where
     the batch size is left undefined.
 
-    Arguments:
+    Parameters
+    ----------
+    x : tf.Tensor
+        The input of the dense layer.
+    number_units : int
+        The number of units that compose the layer.
+    name : str
+        The name of the layer scope.
+    activation :str
+        The activation function to use (optional, default to relu).
 
-    x  -- the input of the dense layer
-    number_units -- the number of units that compose the layer
-    name -- the name of the layer scope
-    activation -- the activation function to use (optional, default to relu)
+    Returns
+    -------
+    tf.Tensor
+        The sum of the input multiplied by the weights and the biases,
+        processed with the activation function.
     """
     with tf.name_scope(name):
         s = reduce(lambda x, y: x * y, x.get_shape().as_list()[1:])
@@ -63,12 +110,19 @@ def drop_layer(x, keep_probability, name):
     probability of keeping the neurons in the input layer and the name of
     the layer scope have to be specified as arguments.
 
-    Arguments:
+    Parameters
+    ----------
+    x : tf.Tensor
+        The input of the dropout layer.
+    keep_probability : tf.Tensor
+        The probability of keeping neurons, usually around 0.5 or something.
+    name : str
+        The name of the layer scope.
 
-    x -- the input of the dropout layer
-    keep_probability -- the probability of keeping neurons (a tensor)
-    name -- the name of the layer
-
+    Returns
+    -------
+    tf.Tensor
+        The dropped version of the input layer.
     """
     with tf.name_scope(name):
         return tf.nn.dropout(x, keep_probability)
@@ -82,13 +136,24 @@ def dense_layers(x, units, keep_probability, name_prefix, activation='relu'):
     corresponding value in the units list. The prefix of the scope name has to
     be provided. Each dense layer is interleaved with a dropout layer.
 
-    Arguments:
+    Parameters
+    ----------
+    x : tf.Tensor
+        The input of the dense layer.
+    units : tuple
+        A list containing the units to be included in each layer.
+    keep_probability : tf.Tensor
+        The probability of keeping units in the layers.
+    name_prefix : str
+        The prefix for the scope name of each dense layer.
+    activation : str
+        The activation function to use (optional, default to relu).
 
-    x -- the input of the dense layer
-    units -- a list containing the units to be included in each layer
-    keep_probability -- the probability of keeping units in the layers
-    name_prefix -- the prefix for the scope name of each dense layer
-    activation -- the activation function to use (optional, default to relu)
+    Returns
+    -------
+    list
+        A list of all the layers produced. The final layer can be accessed with
+        layers[-1], and represents hte output of the layer concatenation.
     """
     layers = []
 
@@ -109,12 +174,21 @@ def depth_conv2d_layer(x, kernel, name, padding='SAME'):
     This method produces a layer by applying depthwise, 2D convolution to
     the input. The kernel should contain 2 dimensions only.
 
-    Arguments:
+    Parameters
+    ----------
+    x : tf.Tensor
+        The input of the convolution.
+    kernel : types.SimpleNamespace
+        Namespace with 'kernel', 'strides' and 'depth' fields.
+    name : str
+        The name of the layer.
+    padding : str
+        The type of padding to apply (default SAME).
 
-    x -- the input of the convolution
-    kernel -- namespace with 'kernel', 'strides' and 'depth' fields
-    name -- the name of the layer
-    padding -- the type of padding to apply (default SAME)
+    Returns
+    -------
+    tf.Tensor
+        The output tensor from the generated convolutional layer.
     """
     with tf.name_scope(name):
         channels = x.shape[3].value
@@ -142,13 +216,21 @@ def maxpool_layer(x, kernel, name, padding='VALID'):
     kernel dimensions should be provided as input. By default, no padding is
     applied to the input layer before the max pooling operation.
 
-    Arguments:
+    Parameters
+    ----------
+    x : tf.Tensor
+        The input tensor.
+    kernel : types.SimpleNamespace
+        Namespace with 'kernel' and 'strides' fields.
+    name : str
+        The name of the layer scope.
+    padding : str
+        The type of padding to apply to the input (default VALID).
 
-    x -- the input tensor
-    kernel -- namespace with 'kernel' and 'strides' fields
-    name -- the name of the layer scope
-    padding -- the type of padding to apply to the input (default VALID)
-
+    Returns
+    -------
+    tf.Tensor
+        The input tensor processed with the max pooling layer.
     """
     with tf.name_scope(name):
         return tf.nn.max_pool(x, ksize=kernel.kernel, strides=kernel.strides,
@@ -161,12 +243,19 @@ def softmax_layer(x, number_labels, name):
     This method generates a softmax layer from the input x, according with the
     number of labels provided as argument.
 
-    Arguments:
+    Parameters
+    ----------
+    x : tf.Tensor
+        The input tensor.
+    number_labels : int
+        How many labels should be used.
+    name : str
+        The name of the layer scope.
 
-    x -- the input tensor
-    number_labels -- how many labels should be used
-    name -- the name of the layer scope
-
+    Returns
+    -------
+    tf.Tensor
+        The softmax calculation of the input tensor.
     """
     with tf.name_scope(name):
         weights = generate_weights([x.shape[1].value, number_labels])
@@ -181,12 +270,20 @@ def cross_entropy_loss(logits, labels, name, regularize=False):
     This method calculates the cross entropy for a vector of predictions.
     If required, the loss function is calculated with L2 regularization.
 
-    Arguments:
+    Parameters
+    ----------
+    logits : tf.Tensor
+        The tensor of predicted values.
+    labels : tf.Tensor the tensor of ground truth for the points
+    name : str
+        The scope name of the loss calculation.
+    regularize : bool
+        Whether L2 regularization should be used (defaulted to False).
 
-    logits -- the tensor of predicted values
-    labels -- the tensor of ground truth for the points
-    name -- the scope name of the loss calculation
-    regularize -- whether L2 regularization should be used (defaulted to False)
+    Returns
+    ------
+    tf.Tensor
+        A tensor containing the loss value.
     """
     with tf.name_scope(name):
         xentropy = -tf.reduce_sum(labels * tf.log(logits),
@@ -205,11 +302,19 @@ def soft_cross_entropy_loss(last_layer, labels, name):
 
     This method returns the cross entropy loss computed over a bunch of logits.
 
-    Arguments:
+    Parameters
+    ----------
+    last_layer : tf.Tensor
+        The tensor of the unnormalized log probabilities.
+    labels : tf.Tensor
+        The tensor of the ground truth.
+    name : str
+        The scope name.
 
-    last_layer -- the tensor of the unnormalized log probabilities
-    labels -- the tensor of the ground truth
-    name -- the scope name
+    Returns
+    ------
+    tf.Tensor
+        The tensor containing the computed cross entropy.
     """
     label_number = labels.shape[1].value
     with tf.name_scope(name):
@@ -225,11 +330,19 @@ def adam_backprop(loss, learning_rate, global_step, name):
 
     This method runs the backpropagation step with the Adam optimizer.
 
-    Arguments:
+    Parameters
+    ----------
+    loss : tf.Tensor
+        The loss value to use for the optimization.
+    learning_rate : tf.Tensor
+        The initial learning rate to use.
+    name : str
+        The scope name for the optimizer.
 
-    loss -- the loss value to use for the optimization
-    learning_rate -- the initial learning rate to use
-    name -- the scope name for the optimizer
+    Returns
+    -------
+    tf.Tensor
+        The tensor operation for the graph update.
     """
     with tf.name_scope(name):
         beta1 = 0.3
@@ -251,12 +364,22 @@ def batchnorm_layer(x, n_out, is_train, name):
 
     This method generate a batch normalization layer.
 
-    Arguments:
+    Parameters
+    ----------
+    x : tf.Tensor
+        The layer input.
+    n_out : int
+        Number of output units.
+    is_train : tf.Tensor
+        Whether the network in in training or testing mode.
+    name : str
+        The name of the layer.
 
-    x -- the layer input
-    n_out -- number of output units
-    is_train -- whether the network in in training or testing mode
-    name -- the name of the layer
+    Returns
+    -------
+    tf.Tensor
+        The normalized version of the input layer, according to whether the
+        network is training or not.
     """
     with tf.name_scope(name):
         beta = tf.Variable(tf.constant(0.0, shape=[n_out]), name='beta',
@@ -287,12 +410,19 @@ def freeze_model(checkpoint_name, model_name, destination, node_names,
     This method can be used to freeze a previously trained model, from its
     checkpoint folder. A list of nodes needs to be specified.
 
-    Arguments:
-    checkpoint_location -- the name of the model checkpoint
-    model_name -- the name of the file that will contain the model
-    destination -- the destination path of the model
-    node_names -- a list of nodes that should be available in the graph
-    as_text -- whether the model should be plain text (defaulted to False)
+    Parameters
+    ----------
+    checkpoint_location : str
+        The name of the model checkpoint (exclude the suffix).
+    model_name : str
+        The name of the file that will contain the model.
+    destination : str
+        The destination path of the model.
+    node_names : list
+        A list of nodes that should be available in the graph.
+    as_text : bool
+        Whether the model should be plain text (defaulted to False). If True,
+        the generated model will come in a JSON format.
     """
     session = tf.Session()
 
@@ -327,12 +457,25 @@ def unfreeze_model(model_file, x_name, y_name, others, name):
     other values should be passed to the graph, a list of tensor names can be
     provided.
 
-    Arguments:
-    model_file -- the filename of the model
-    x_name -- the name of the input tensor
-    y_name -- the name of the output tensor
-    others -- a list of names that should be fetched from the graph
-    name -- the name of the graph that is produced
+    Parameters
+    ----------
+    model_file : str
+        The filename of the model.
+    x_name : str
+        The name of the input tensor.
+    y_name : str
+        The name of the output tensor.
+    others : list
+        A list of names that should be fetched from the graph.
+    name : str
+        The name of the graph that is produced.
+
+    Returns
+    -------
+    tuple
+        A tuple containing the input node as first element, the output node as
+        second element, a dictionary of tensors as third element, and the
+        unrolled graph as fourth element.
     """
     with tf.gfile.GFile(model_file, 'rb') as f:
         restored_graph_def = tf.GraphDef()
