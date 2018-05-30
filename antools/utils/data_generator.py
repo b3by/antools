@@ -19,11 +19,21 @@ def get_files(ds_location, coordinates, exercises=None):
     include are the segmented ones only, which are specified in the coordinates
     file.
 
-    Arguments:
+    Parameter
+    ---------
+    ds_location : str
+        The path of the folder containing all the exercise folders.
+    coordinates : str
+        The path of the coordinate file with all the files to include.
+    exercises : list
+        The exercises to include (defaulted to None, so all included).
 
-    ds_location -- the folder containing all the exercise folders
-    coordinates -- the coordinate file with all the files to include
-    exercises -- the exercises to include (defaulted to None, so all included)
+    Returns
+    -------
+    list
+        A list of tuples, where each tuple contains the full path of a file in
+        the first element, and a list of coordinates (tuples) in the second
+        element.
     """
     c_df = pd.read_csv(coordinates)
     f_list = [(c[0], ast.literal_eval(c[1])) for c in list(zip(
@@ -42,6 +52,22 @@ def next_window(signals, window_size, stride):
     """Rolling windows
 
     This method yields windows. That's how it rolls.
+
+    Parameters
+    ----------
+    signals : list
+        A list of signals from which the windows should be extracted.
+    window_size : int
+        The size of the windows.
+    stride : int
+        The stride between consecutive windows.
+
+    Yields
+    ------
+    list
+        A list, where each element represents a window over one of the input
+        signals. For each window, the yielded list will have as many elements
+        as the signals provided in the input.
     """
     c_win = 0
     while c_win + window_size <= len(signals[0]):
@@ -59,13 +85,26 @@ def get_win(exercise_file, crds, sensors, window_size, stride,
     The label assigned to each window depends on where the window is compared
     with the points in the coordinates file.
 
-    Arguments:
+    Parameters
+    ----------
+    exercise_file : str
+        The path of the exercise file containing all the signals.
+    crds : list
+        The coordinates for the current exercise.
+    sensors : list
+        A list of the sensors for which the signals should be included.
+    window_size : int
+        The size of each window.
+    stride : int
+        Stride between subsequent windows.
 
-    exercise_file -- the exercise file containing all the signals
-    crds -- the coordinates for the current exercise
-    sensors -- the sensors for which the signals should be included
-    window_size -- the size of each window
-    stride -- stride between subsequent windows
+    Returns
+    -------
+    pandas.DataFrame
+        A pandas dataframe containing all the retrieved windows for the
+        exercise provided as input.
+    tuple
+        A tuple containing the counting for the windows (silent and movement).
     """
     exr = pd.read_csv(exercise_file, sep=',')
     exr = exr.dropna(axis=0)
@@ -140,12 +179,23 @@ def generate_input(dataset, train_dst, test_dst, crds, target_sensor,
     This method parses all the files in a given dataset, and aggregates them
     in two separate datasets, one for train and one for test.
 
-    Arguments:
+    Parameters
+    ----------
+    dataset : str
+        The location of the dataset.
+    train_dst : str
+        Destination for the train dataset (full path).
+    test_dst : str
+        Destination for the test dataset (full path).
+    crds : str
+        Coordinates file (full path).
 
-    dataset -- the location of the dataset
-    train_dst -- destination for the train dataset
-    test_dst -- destination for the test dataset
-    crds -- coordinates file
+    Returns
+    -------
+    list:
+        A list of the ids used for the training split.
+    list
+        A list of the ids used for the testing split.
     """
     all_files = get_files(dataset, crds, exercises)
     subjects = {}
@@ -205,6 +255,35 @@ def generate_datasets(Flags, exercises=None, max_files=-1, test_size=0.2,
 
     This method provides a shortcut to call the generate_input method, without
     passing all the arguments one by one.
+
+    Parameters
+    ----------
+    Flags : types.SimpleNamespace
+        The namespace containing all the required arguments for the
+        generate_input method.
+    exercise : list
+        The list of the exercise to include in the generated dataset. It is
+        defaulted to None, by which all exercises will be included.
+    max_files : int
+        Maximum number of files to include in the final dataset. It is
+        defaulted to -1, which includes all the files.
+    test_size : float
+        The proportion of subjects to include in the test dataset (def 0.2).
+    normalize : str
+        Normalization method, can be either minmax or zscore. By default, no
+        normalization is applied to the data.
+    binary : bool
+        The type of labels to generate in the output datasets. If True, only
+        two classes will be generated (silence and movement), while False will
+        result in a dataset annotated with three classes (silence, transition,
+        and movement). Defaulted to False.
+
+    Returns
+    -------
+    list:
+        A list of the ids used for the training split.
+    list
+        A list of the ids used for the testing split.
     """
     return generate_input(Flags.dataset_location, Flags.train, Flags.test,
                           Flags.coordinates, Flags.sensors, Flags.window_size,
@@ -220,13 +299,29 @@ def get_tf_train_test(train_file_loc, test_file_loc, height, width, depth):
     the dimensions provided in the input. The labels are returned in form of
     dummy vectors.
 
-    Arguments:
+    Parameters
+    ----------
+    train_file_loc : str
+        Location of the training file.
+    test_file_loc : str
+        Location of the testing file.
+    height : int
+        The desired height of the outuput.
+    width : int
+        The desired width of the output.
+    depth : int
+        The desired depth of the output.
 
-    train_file_loc -- location of the training file
-    test_file_loc -- location of the testing file
-    height -- the desired height of the outuput
-    width -- the desired width of the output
-    depth -- the desired depth of the output
+    Returns
+    -------
+    numpy.ndarray
+        The training X dataset.
+    numpy.ndarray
+        The training Y dataset.
+    numpy.ndarray
+        The test X dataset.
+    numpy.ndarray
+        The test Y dataset.
     """
     train_file = pd.read_csv(train_file_loc)
     test_file = pd.read_csv(test_file_loc)
@@ -252,9 +347,21 @@ def get_datasets(Flags):
     This method provides an interface to use the get_tf_train_test method by
     passing a namespace as argument.
 
-    Arguments:
+    Parameter
+    ---------
+    Flags : types:SimpleNamespace
+        A SimpleNamespace containing all the fields for get_tf_train_test.
 
-    Flags -- a SimpleNamespace containing all the fields for get_tf_train_test
+    Returns
+    -------
+    numpy.ndarray
+        The training X dataset.
+    numpy.ndarray
+        The training Y dataset.
+    numpy.ndarray
+        The test X dataset.
+    numpy.ndarray
+        The test Y dataset.
     """
     return get_tf_train_test(Flags.train, Flags.test, Flags.input_height,
                              Flags.input_width, Flags.channels)
