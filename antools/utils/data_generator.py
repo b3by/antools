@@ -172,8 +172,7 @@ def get_win(exercise_file, crds, sensors, window_size, stride,
 
 def generate_input(dataset, train_dst, test_dst, crds, target_sensor,
                    window_size, stride, exercises=None, max_files=-1,
-                   test_size=0.2, normalize=None, binary=False,
-                   on_patient=True):
+                   test_size=0.2, normalize=None, binary=False, tts_seed=42):
     """Generate train and test datasets, write them to file
 
     This method parses all the files in a given dataset, and aggregates them
@@ -189,6 +188,26 @@ def generate_input(dataset, train_dst, test_dst, crds, target_sensor,
         Destination for the test dataset (full path).
     crds : str
         Coordinates file (full path).
+    target_sensor : list
+        A list of sensors that should be included in the dataset.
+    window_size : int
+        The size of the window to chunk the signal.
+    stride : int
+        The stride between consecutive windows.
+    exercises : list
+        The set of exercises to include in the dataset. It is defaulted to
+        None, and the default value will include all the exercises.
+    max_files : int
+        The number of files to include in the dataset (only the first max_files
+        files will be included). Defaulted to -1, will include all the files.
+    test_size : float
+        The proportion of the test split.
+    normalize : str
+        Specifies the normalization method. Can be either minmax or zscore.
+    binary : bool
+        Whether the dataset should be built with binary or ternary classes.
+    tts_seed : int
+        The random seed for the train-test split. Defaulted to 42.
 
     Returns
     -------
@@ -213,7 +232,7 @@ def generate_input(dataset, train_dst, test_dst, crds, target_sensor,
         all_files = all_files[:max_files]
 
     subs = list(subjects.keys())
-    train_s, test_s = train_test_split(subs)
+    train_s, test_s = train_test_split(subs, random_state=tts_seed)
 
     train_files = []
     for train_sub_id in train_s:
