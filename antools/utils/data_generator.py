@@ -253,17 +253,23 @@ def generate_input(dataset, train_dst, test_dst, crds, target_sensor,
                        window_size, stride, normalize=normalize, binary=binary)
         train_frames.append(d)
 
+    final_train = pd.concat(train_frames, sort=True)
+    final_train.to_csv(train_dst, index=None, header=True)
+
+    del train_frames
+    del final_train
+
     test_frames = []
     for test_file in tqdm(test_files, desc='Testing files'):
         d, s = get_win(test_file[0], test_file[1], target_sensor, window_size,
                        stride, normalize=normalize, binary=binary)
         test_frames.append(d)
 
-    final_train = pd.concat(train_frames, sort=True)
     final_test = pd.concat(test_frames, sort=True)
-
-    final_train.to_csv(train_dst, index=None, header=True)
     final_test.to_csv(test_dst, index=None, header=True)
+
+    del final_test
+    del test_frames
 
     return train_s, test_s
 
