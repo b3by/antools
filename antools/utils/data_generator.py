@@ -219,6 +219,9 @@ def generate_input(dataset, train_dst, test_dst, crds, target_sensor,
     all_files = get_files(dataset, crds, exercises)
     subjects = {}
 
+    if max_files > 0:
+        all_files = all_files[:max_files]
+
     for f in all_files:
         f_name = os.path.basename(f[0])
         s_id = int(f_name.split('.')[1])
@@ -227,9 +230,6 @@ def generate_input(dataset, train_dst, test_dst, crds, target_sensor,
             subjects[s_id] = [f]
         else:
             subjects[s_id].append(f)
-
-    if max_files > 0:
-        all_files = all_files[:max_files]
 
     subs = list(subjects.keys())
     train_s, test_s = train_test_split(subs, random_state=tts_seed)
@@ -253,7 +253,12 @@ def generate_input(dataset, train_dst, test_dst, crds, target_sensor,
                        window_size, stride, normalize=normalize, binary=binary)
         train_frames.append(d)
 
+    print('train frames generated, concatenating...')
+
     final_train = pd.concat(train_frames, sort=True)
+
+    print('done, now writing...')
+
     final_train.to_csv(train_dst, index=None, header=True)
 
     del train_frames
@@ -275,7 +280,7 @@ def generate_input(dataset, train_dst, test_dst, crds, target_sensor,
 
 
 def generate_datasets(Flags, exercises=None, max_files=-1, test_size=0.2,
-                      normalize=None, binary=False):
+                      normalize=None, binary=False, tts_seed=42):
     """Generate datasets from flags
 
     This method provides a shortcut to call the generate_input method, without
@@ -302,6 +307,8 @@ def generate_datasets(Flags, exercises=None, max_files=-1, test_size=0.2,
         two classes will be generated (silence and movement), while False will
         result in a dataset annotated with three classes (silence, transition,
         and movement). Defaulted to False.
+    tts_seed : int
+        The random seed for the train-test split. Defaulted to 42.
 
     Returns
     -------
@@ -314,7 +321,8 @@ def generate_datasets(Flags, exercises=None, max_files=-1, test_size=0.2,
                           Flags.coordinates, Flags.sensors, Flags.window_size,
                           Flags.stride, exercises=Flags.exercises,
                           max_files=max_files, test_size=test_size,
-                          normalize=normalize, binary=binary)
+                          normalize=normalize, binary=binary,
+                          tts_seed=tts_seed)
 
 
 def get_tf_train_test(train_file_loc, test_file_loc, height, width, depth):
