@@ -259,8 +259,8 @@ def generate_input(dataset, train_dst, test_dst, crds, target_sensor,
                        stride, normalize=normalize, binary=binary)
         test_frames.append(d)
 
-    final_train = pd.concat(train_frames)
-    final_test = pd.concat(test_frames)
+    final_train = pd.concat(train_frames, sort=True)
+    final_test = pd.concat(test_frames, sort=True)
 
     final_train.to_csv(train_dst, index=None, header=True)
     final_test.to_csv(test_dst, index=None, header=True)
