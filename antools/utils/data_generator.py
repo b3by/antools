@@ -256,8 +256,6 @@ def generate_input(dataset, train_dst, test_dst, crds, target_sensor,
     train_args = [[tf[0], tf[1], target_sensor, window_size, stride,
                    normalize, binary] for tf in train_files]
 
-    train_args = train_args[:8]
-
     print('Producing training set...')
     with multiprocessing.Pool(procs or multiprocessing.cpu_count()) as pool:
         train_frames = pool.starmap(get_win, train_args)
