@@ -1,5 +1,6 @@
 import ast
 import os
+import multiprocessing
 import collections
 
 import pandas as pd
@@ -172,7 +173,8 @@ def get_win(exercise_file, crds, sensors, window_size, stride,
 
 def generate_input(dataset, train_dst, test_dst, crds, target_sensor,
                    window_size, stride, exercises=None, max_files=-1,
-                   test_size=0.2, normalize=None, binary=False, tts_seed=42):
+                   test_size=0.2, normalize=None, binary=False, tts_seed=42,
+                   procs=None):
     """Generate train and test datasets, write them to file
 
     This method parses all the files in a given dataset, and aggregates them
@@ -208,6 +210,9 @@ def generate_input(dataset, train_dst, test_dst, crds, target_sensor,
         Whether the dataset should be built with binary or ternary classes.
     tts_seed : int
         The random seed for the train-test split. Defaulted to 42.
+    procs : int
+        The number of processes to spawn for the data generation. If not
+        provided, all the available processes will be used.
 
     Returns
     -------
@@ -248,33 +253,30 @@ def generate_input(dataset, train_dst, test_dst, crds, target_sensor,
     tqdm.monitor_interval = 0
 
     train_frames = []
-    for train_file in tqdm(train_files, desc='Training files'):
-        d, s = get_win(train_file[0], train_file[1], target_sensor,
-                       window_size, stride, normalize=normalize, binary=binary)
-        train_frames.append(d)
+    train_args = [[tf[0], tf[1], target_sensor, window_size, stride,
+                   normalize, binary] for tf in train_files]
 
-    print('train frames generated, concatenating...')
+    train_args = train_args[:8]
 
+    print('Producing training set...')
+    with multiprocessing.Pool(procs or multiprocessing.cpu_count()) as pool:
+        train_frames = pool.starmap(get_win, train_args)
+
+    train_frames = [tf[0] for tf in train_frames]
     final_train = pd.concat(train_frames, sort=True)
-
-    print('done, now writing...')
-
     final_train.to_csv(train_dst, index=None, header=True)
 
-    del train_frames
-    del final_train
-
     test_frames = []
-    for test_file in tqdm(test_files, desc='Testing files'):
-        d, s = get_win(test_file[0], test_file[1], target_sensor, window_size,
-                       stride, normalize=normalize, binary=binary)
-        test_frames.append(d)
+    test_args = [[tf[0], tf[1], target_sensor, window_size, stride,
+                  normalize, binary] for tf in test_files]
 
+    print('Producing test set...')
+    with multiprocessing.Pool(procs or multiprocessing.cpu_count()) as pool:
+        test_frames = pool.starmap(get_win, test_args)
+
+    test_frames = [tf[0] for tf in test_frames]
     final_test = pd.concat(test_frames, sort=True)
     final_test.to_csv(test_dst, index=None, header=True)
-
-    del final_test
-    del test_frames
 
     return train_s, test_s
 
