@@ -1,13 +1,16 @@
 import ast
 import os
-import multiprocessing
-import collections
+import multiprocessing as mp
+import shutil
+import glob
 
 import pandas as pd
 import numpy as np
 
 from tqdm import tqdm
 from sklearn.model_selection import train_test_split
+
+from . import clprint
 
 
 def get_files(ds_location, coordinates, exercises=None):
@@ -78,13 +81,16 @@ def next_window(signals, window_size, stride):
         c_win += stride
 
 
-def get_win(exercise_file, crds, sensors, window_size, stride,
-            normalize=None, binary=False, win_t=0.25):
+def get_win(exercise_file, crds, sensors, win_size, stride, dst,
+            normalize=None, win_t=0.25):
     """Extract windows
 
-    This method returns all the windows contained in a single exercise file.
-    The label assigned to each window depends on where the window is compared
-    with the points in the coordinates file.
+    This method reads in an exercise file, and produces a data file containing
+    all the linearized windows produced for that file, with a corresponding
+    label for each window. A label of 1 represent a window where movement is
+    detected, whilst a label of 0 is assigned to windows where no movement is
+    detected. The method directly writes the produced windows in a file
+    specified by the dst argument, without using pandas in the process.
 
     Parameters
     ----------
@@ -94,86 +100,83 @@ def get_win(exercise_file, crds, sensors, window_size, stride,
         The coordinates for the current exercise.
     sensors : list
         A list of the sensors for which the signals should be included.
-    window_size : int
+    win_size : int
         The size of each window.
     stride : int
         Stride between subsequent windows.
+    dst : str
+        The destination file of the generated windows.
+    normalize : str
+        If a normalization policy is specified, the data will be normalized.
+        Possible normalization methods are minmax and zscore. Def. to None.
+    win_t : float
+        Represents the threshold to use when assigning labels to the windows.
+        The default is 0.25, and is passed as percentage value.
 
     Returns
     -------
-    pandas.DataFrame
-        A pandas dataframe containing all the retrieved windows for the
-        exercise provided as input.
-    tuple
-        A tuple containing the counting for the windows (silent and movement).
+    str
+        If the process was successful, the method returns the full path of the
+        produced file.
+
+    Raises
+    ------
+    Exception
+        A generic exception is meant to indicat the conversion failure of the
+        passed exercise files. If that's the case, the method returns None.
+        This exception will be further detailed in the future.
+
     """
     exr = pd.read_csv(exercise_file, sep=',')
     exr = exr.dropna(axis=0)
 
-    cls = ['acc_x_', 'acc_y_', 'acc_z_', 'gyro_x_', 'gyro_y_', 'gyro_z_']
+    try:
+        cls = ['acc_x_', 'acc_y_', 'acc_z_', 'gyro_x_', 'gyro_y_', 'gyro_z_']
+        col_list = list(exr.columns)
 
-    col_list = list(exr.columns)
+        if normalize == 'minmax':
+            for col in col_list:
+                exr[col] = (exr[col] -
+                            exr[col].min()) / (exr[col].max() - exr[col].min())
+        elif normalize == 'zscore':
+            for col in col_list:
+                exr[col] = (exr[col] - exr[col].mean()) / exr[col].std(ddof=0)
 
-    if normalize == 'minmax':
-        for col in col_list:
-            exr[col] = (exr[col] -
-                        exr[col].min()) / (exr[col].max() - exr[col].min())
-    elif normalize == 'zscore':
-        for col in col_list:
-            exr[col] = (exr[col] - exr[col].mean()) / exr[col].std(ddof=0)
+        all_sig = []
 
-    all_signals = []
+        for t in sensors:
+            all_sig += [exr[i + t] for i in cls]
 
-    for t in sensors:
-        all_signals += [exr[i + t] for i in cls]
+        cols = ['{}{}'.format(a, i) for a in cls for i in range(win_size *
+                                                                len(sensors))]
 
-    cols = ['{}{}'.format(a, i)
-            for a in cls
-            for i in range(window_size * len(sensors))]
+        cols.append('label')
 
-    cols.append('label')
+        win_thresh = int(win_size * win_t) * 0
+        outfile_path = os.path.join(dst, os.path.basename(exercise_file))
 
-    df = pd.DataFrame(columns=cols)
-    cnt = collections.Counter()
+        with open(outfile_path, 'w') as outfile:
+            outfile.write(','.join(cols) + '\n')
 
-    win_thresh = int(window_size * win_t) * 0
+            for i, win in enumerate(next_window(all_sig, win_size, stride)):
+                win_start = i * stride
+                win_end = win_start + win_size
 
-    for i, win in enumerate(next_window(all_signals, window_size, stride)):
-        window_start = i * stride
-        window_end = window_start + window_size
+                if any(c[0] < (win_end - win_thresh) and c[1] > win_start +
+                       win_thresh for c in crds):
+                    outfile.write(','.join(map(str, win + [1])) + '\n')
+                else:
+                    outfile.write(','.join(map(str, win + [0])) + '\n')
 
-        if binary:
-            if any(c[0] < (window_end - win_thresh) and c[1] > window_start +
-                   win_thresh for c in crds):
-                # movement
-                df.loc[len(df)] = dict(zip(cols, win + [1]))
-                cnt.update([1])
-            else:
-                # silent
-                df.loc[len(df)] = dict(zip(cols, win + [0]))
-                cnt.update([0])
-        else:
-            if any(c[0] < window_start and c[1] > window_end for c in crds):
-                df.loc[len(df)] = dict(zip(cols, win + [2]))
-                cnt.update([2])
-            elif any((c[0] >= window_start and c[0] <= window_end) or
-                     (c[1] >= window_start and c[1] <= window_end)
-                     for c in
-                     crds):
-                df.loc[len(df)] = dict(zip(cols, win + [1]))
-                cnt.update([1])
-            else:
-                df.loc[len(df)] = dict(zip(cols, win + [0]))
-                cnt.update([0])
-
-    df['label'] = df['label'].astype(int)
-
-    return df, tuple(cnt.values())
+        return outfile_path
+    except Exception:
+        clprint.ptrun('  Exception for {}'.format(exercise_file))
+        return None
 
 
 def generate_input(dataset, train_dst, test_dst, crds, target_sensor,
                    window_size, stride, exercises=None, max_files=-1,
-                   test_size=0.2, normalize=None, binary=False, tts_seed=42,
+                   test_size=0.2, normalize=None, tts_seed=42, parallel=False,
                    procs=None):
     """Generate train and test datasets, write them to file
 
@@ -206,8 +209,6 @@ def generate_input(dataset, train_dst, test_dst, crds, target_sensor,
         The proportion of the test split.
     normalize : str
         Specifies the normalization method. Can be either minmax or zscore.
-    binary : bool
-        Whether the dataset should be built with binary or ternary classes.
     tts_seed : int
         The random seed for the train-test split. Defaulted to 42.
     procs : int
@@ -247,40 +248,125 @@ def generate_input(dataset, train_dst, test_dst, crds, target_sensor,
     for test_sub_id in test_s:
         test_files += subjects[test_sub_id]
 
-    print('Training subjects: {}'.format(train_s))
-    print('Testing subjects: {}'.format(test_s))
+    clprint.ptinfo('Training subjects: {}'.format(train_s))
+    clprint.ptinfo('Testing subjects: {}'.format(test_s))
 
-    tqdm.monitor_interval = 0
+    train_temp_dst = os.path.join(dataset, 'supercacca', 'train')
+    test_temp_dst = os.path.join(dataset, 'supercacca', 'test')
+    os.makedirs(train_temp_dst, exist_ok=True)
+    os.makedirs(test_temp_dst, exist_ok=True)
 
-    train_frames = []
+    clprint.ptinfo('  Train temp destination: {}'.format(train_temp_dst))
+    clprint.ptinfo('  Test temp destination: {}'.format(test_temp_dst))
+
     train_args = [[tf[0], tf[1], target_sensor, window_size, stride,
-                   normalize, binary] for tf in train_files]
+                   train_temp_dst, normalize] for tf in train_files]
 
-    print('Producing training set...')
-    with multiprocessing.Pool(procs or multiprocessing.cpu_count()) as pool:
-        train_frames = pool.starmap(get_win, train_args)
-
-    train_frames = [tf[0] for tf in train_frames]
-    final_train = pd.concat(train_frames, sort=True)
-    final_train.to_csv(train_dst, index=None, header=True)
-
-    test_frames = []
     test_args = [[tf[0], tf[1], target_sensor, window_size, stride,
-                  normalize, binary] for tf in test_files]
+                  test_temp_dst, normalize] for tf in test_files]
 
-    print('Producing test set...')
-    with multiprocessing.Pool(procs or multiprocessing.cpu_count()) as pool:
-        test_frames = pool.starmap(get_win, test_args)
+    parallelize_window_generation_imap(train_args, procs=4)
+    concatenate_and_save(train_temp_dst, train_dst)
 
-    test_frames = [tf[0] for tf in test_frames]
-    final_test = pd.concat(test_frames, sort=True)
-    final_test.to_csv(test_dst, index=None, header=True)
+    parallelize_window_generation_imap(test_args, procs=4)
+    concatenate_and_save(test_temp_dst, test_dst)
 
     return train_s, test_s
 
 
+def concatenate_and_save(source, destination):
+    """Read in many files, spit out one single file
+
+    This method reads all the csv files specified in the source folder, and
+    returns the concatenation of the files in the destination file. The method
+    expects to find the header in all the files in the source folder: only
+    the first header will be included in the produced csv, while all the other
+    headers will be ignored. The method brutally concatenates the files, so no
+    check is performed over the number of columns.
+
+    Parameters
+    ---------
+    source : str
+        A full path of the folder containing the files to concatenate.
+    destination : str
+        The full path of the destination file.
+
+    """
+    clprint.ptinfo('Concatenating from {} to {}'.format(source, destination))
+    allFiles = glob.glob(source + '/*.csv')
+
+    with open(destination, 'wb') as outfile:
+        for i, fname in enumerate(allFiles):
+            with open(fname, 'rb') as infile:
+                if i != 0:
+                    infile.readline()
+
+                shutil.copyfileobj(infile, outfile)
+                print('{} copied'.format(fname))
+
+
+def serialize_window_generation(passed_args):
+    """Extract windows in a serial fashion
+
+    This method takes a list of arguments, and calls the get_win function for
+    each one of them. The function is called sequentially.
+
+    Parameters
+    ----------
+    passed_args : list
+        A list of lists to unpack and pass to the get_win function.
+
+    Returns
+    -------
+    list
+        A list of tuples, where each tuple is composed by a list of arguments
+        and the returned value from the get_win function (either the
+        destination path or None).
+
+    """
+    tqdm.monitor_interval = 0
+    written = []
+    for a in tqdm(passed_args, desc='Processing frames'):
+        written.append((a, get_win(*a)))
+
+    return written
+
+
+def parallelize_window_generation_imap(passed_args, procs=None):
+    """Produce window files, in a parallel fashion
+
+    This method calls the get_win function as many times as sets of arguments
+    specified in passed_args. starmap is used to pass the list of arguments to
+    each invocation of get_win. The pool is created with either the number of
+    provided processors, or half the number of the available processors (be
+    kind, don't allocate everything).
+
+    Parameters
+    ----------
+    passed_args : list
+        A list of lists, each one containing all the arguments to pass to an
+        invocation of the get_win function.
+    procs : int
+        The number of processors to use. Defaulted to None, will use half of
+        the available cores.
+
+    Returns
+    -------
+    list
+        A list containing the paths of all the results from the get_win calls.
+
+    """
+    pool = mp.Pool(procs or int(mp.cpu_count() / 2))
+    results = pool.starmap(get_win, passed_args)
+
+    pool.close()
+    pool.join()
+
+    return results
+
+
 def generate_datasets(Flags, exercises=None, max_files=-1, test_size=0.2,
-                      normalize=None, binary=False, tts_seed=42):
+                      normalize=None, tts_seed=42):
     """Generate datasets from flags
 
     This method provides a shortcut to call the generate_input method, without
@@ -302,11 +388,6 @@ def generate_datasets(Flags, exercises=None, max_files=-1, test_size=0.2,
     normalize : str
         Normalization method, can be either minmax or zscore. By default, no
         normalization is applied to the data.
-    binary : bool
-        The type of labels to generate in the output datasets. If True, only
-        two classes will be generated (silence and movement), while False will
-        result in a dataset annotated with three classes (silence, transition,
-        and movement). Defaulted to False.
     tts_seed : int
         The random seed for the train-test split. Defaulted to 42.
 
@@ -321,8 +402,7 @@ def generate_datasets(Flags, exercises=None, max_files=-1, test_size=0.2,
                           Flags.coordinates, Flags.sensors, Flags.window_size,
                           Flags.stride, exercises=Flags.exercises,
                           max_files=max_files, test_size=test_size,
-                          normalize=normalize, binary=binary,
-                          tts_seed=tts_seed)
+                          normalize=normalize, tts_seed=tts_seed)
 
 
 def get_tf_train_test(train_file_loc, test_file_loc, height, width, depth):

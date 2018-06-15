@@ -1,11 +1,26 @@
 import unittest
 import os
+import shutil
 
 from antools.utils import data_generator
+import pandas as pd
 import numpy as np
 
 
 class TestDataGeneratorUtils(unittest.TestCase):
+
+    base = os.path.dirname(__file__)
+    test_dataset = os.path.join(os.path.dirname(__file__), 'data')
+    gen_path = os.path.join(os.path.dirname(__file__), 'data', 'generated')
+    test_coordinate_file = os.path.join(os.path.dirname(__file__),
+                                        'test_coordinates.csv')
+
+    def setUp(self):
+        os.makedirs(self.gen_path)
+
+    def tearDown(self):
+        if os.path.exists(self.gen_path):
+            shutil.rmtree(self.gen_path)
 
     def test_next_window(self):
         test_signal = [list(range(1000))]
@@ -58,14 +73,11 @@ class TestDataGeneratorUtils(unittest.TestCase):
             win, [2, 3, 4, 5, 6, 12, 13, 14, 15, 16, 22, 23, 24, 25, 26])
 
     def test_get_files(self):
-        base = os.path.dirname(__file__)
-        test_dataset = os.path.join(base, 'data')
-        test_coordinate_file = os.path.join(base, 'test_coordinates.csv')
+        f1 = os.path.join(self.base, 'data/ex1/ex1.real.csv')
+        f2 = os.path.join(self.base, 'data/ex1/ex1.mock.csv')
 
-        f1 = os.path.join(base, 'data/ex1/ex1.real.csv')
-        f2 = os.path.join(base, 'data/ex1/ex1.mock.csv')
-
-        ll = data_generator.get_files(test_dataset, test_coordinate_file)
+        ll = data_generator.get_files(self.test_dataset,
+                                      self.test_coordinate_file)
 
         self.assertEqual(2, len(ll))
         self.assertEqual(2, len(ll[1][1]))
@@ -86,15 +98,11 @@ class TestDataGeneratorUtils(unittest.TestCase):
         self.assertCountEqual([(20, 40), (60, 80)], ll[1][1])
 
     def test_get_files_with_exercise(self):
-        base = os.path.dirname(__file__)
-        test_dataset = os.path.join(base, 'data')
-        test_coordinate_file = os.path.join(base, 'test_coordinates.csv')
+        f1 = os.path.join(self.base, 'data/ex1/ex1.real.csv')
+        f2 = os.path.join(self.base, 'data/ex1/ex1.mock.csv')
 
-        f1 = os.path.join(base, 'data/ex1/ex1.real.csv')
-        f2 = os.path.join(base, 'data/ex1/ex1.mock.csv')
-
-        ll = data_generator.get_files(test_dataset, test_coordinate_file,
-                                      ['ex1'])
+        ll = data_generator.get_files(self.test_dataset,
+                                      self.test_coordinate_file, ['ex1'])
 
         self.assertEqual(2, len(ll))
         self.assertEqual(2, len(ll[1][1]))
@@ -115,41 +123,40 @@ class TestDataGeneratorUtils(unittest.TestCase):
         self.assertCountEqual([(20, 40), (60, 80)], ll[1][1])
 
     def test_get_win_count(self):
-        base = os.path.dirname(__file__)
-        test_dataset = os.path.join(base, 'data')
-        test_coordinate_file = os.path.join(base, 'test_coordinates.csv')
+        ff = data_generator.get_files(self.test_dataset,
+                                      self.test_coordinate_file)[1]
 
-        ff = data_generator.get_files(test_dataset,
-                                      test_coordinate_file)[1]
-
-        df, _ = data_generator.get_win(ff[0], ff[1], ['target1'], 10, 1)
+        g = data_generator.get_win(ff[0], ff[1], ['target1'], 10, 1,
+                                   self.gen_path)
+        self.assertEqual(g, os.path.join(self.gen_path, 'ex1.mock.csv'))
+        df = pd.read_csv(g)
         self.assertEqual(int(((100 - 10) / 1) + 1), df.shape[0])
 
-        df, _ = data_generator.get_win(ff[0], ff[1], ['target1'], 20, 1)
+        g = data_generator.get_win(ff[0], ff[1], ['target1'], 20, 1,
+                                   self.gen_path)
+        df = pd.read_csv(g)
         self.assertEqual(int(((100 - 20) / 1) + 1), df.shape[0])
 
-        df, _ = data_generator.get_win(ff[0], ff[1], ['target1'], 20, 5)
+        g = data_generator.get_win(ff[0], ff[1], ['target1'], 20, 5,
+                                   self.gen_path)
+        df = pd.read_csv(g)
         self.assertEqual(int(((100 - 20) / 5) + 1), df.shape[0])
 
-        df, _ = data_generator.get_win(ff[0], ff[1], ['target1'], 18, 7)
+        g = data_generator.get_win(ff[0], ff[1], ['target1'], 18, 7,
+                                   self.gen_path)
+        df = pd.read_csv(g)
         self.assertEqual(int(((100 - 18) / 7) + 1), df.shape[0])
 
     def test_get_win_mock(self):
-        base = os.path.dirname(__file__)
-        test_dataset = os.path.join(base, 'data')
-        test_coordinate_file = os.path.join(base, 'test_coordinates.csv')
+        ff = data_generator.get_files(self.test_dataset,
+                                      self.test_coordinate_file)[1]
 
-        ff = data_generator.get_files(test_dataset,
-                                      test_coordinate_file)[1]
+        g = data_generator.get_win(ff[0], ff[1], ['target1'], 10, 1,
+                                   self.gen_path)
 
-        df, freqs = data_generator.get_win(ff[0], ff[1],
-                                           ['target1'], 10, 1)
+        df = pd.read_csv(g)
 
         self.assertEqual(10 * 6 + 1, df.shape[1])
-
-        self.assertEqual(29, freqs[0])
-        self.assertEqual(44, freqs[1])
-        self.assertEqual(18, freqs[2])
 
         synth = df.values.tolist()
         tg = []
@@ -162,15 +169,13 @@ class TestDataGeneratorUtils(unittest.TestCase):
         self.assertCountEqual(tg, synth[0])
 
     def test_get_win_binary_mock_stride_one(self):
-        base = os.path.dirname(__file__)
-        test_dataset = os.path.join(base, 'data')
-        test_coordinate_file = os.path.join(base, 'test_coordinates.csv')
+        ff = data_generator.get_files(self.test_dataset,
+                                      self.test_coordinate_file)[1]
 
-        ff = data_generator.get_files(test_dataset,
-                                      test_coordinate_file)[1]
+        g = data_generator.get_win(ff[0], ff[1], ['target1'], 10, 1,
+                                   self.gen_path)
 
-        df, freqs = data_generator.get_win(ff[0], ff[1],
-                                           ['target1'], 10, 1, binary=True)
+        df = pd.read_csv(g)
 
         self.assertEqual(91, df.shape[0])
         self.assertCountEqual([0] * 11, df['label'].values.tolist()[:11])
@@ -180,31 +185,25 @@ class TestDataGeneratorUtils(unittest.TestCase):
         self.assertCountEqual([0] * 11, df['label'].values.tolist()[80:91])
 
     def test_get_win_binary_mock_other_strides(self):
-        base = os.path.dirname(__file__)
-        test_dataset = os.path.join(base, 'data')
-        test_coordinate_file = os.path.join(base, 'test_coordinates.csv')
+        ff = data_generator.get_files(self.test_dataset,
+                                      self.test_coordinate_file)[1]
 
-        ff = data_generator.get_files(test_dataset,
-                                      test_coordinate_file)[1]
+        g = data_generator.get_win(ff[0], ff[1], ['target1'], 3, 2,
+                                   self.gen_path)
 
-        df, freqs = data_generator.get_win(ff[0], ff[1],
-                                           ['target1'], 3, 2, binary=True)
+        df = pd.read_csv(g)
 
         self.assertEqual(49, df.shape[0])
         self.assertCountEqual([0] * 4, df['label'].values.tolist()[:4])
 
     def test_get_win_normalize_minmax(self):
-        base = os.path.dirname(__file__)
-        test_dataset = os.path.join(base, 'data')
-        test_coordinate_file = os.path.join(base, 'test_coordinates.csv')
+        ff = data_generator.get_files(self.test_dataset,
+                                      self.test_coordinate_file)[1]
 
-        ff = data_generator.get_files(test_dataset,
-                                      test_coordinate_file)[1]
+        g = data_generator.get_win(ff[0], ff[1], ['target1'], 10, 1,
+                                   self.gen_path, normalize='minmax')
 
-        df, freqs = data_generator.get_win(ff[0], ff[1],
-                                           ['target1'], 10, 1,
-                                           normalize='minmax')
-
+        df = pd.read_csv(g)
         first_win = df.loc[0].tolist()
         tg = []
 
@@ -219,17 +218,13 @@ class TestDataGeneratorUtils(unittest.TestCase):
         self.assertEqual(1.0, first_win[1])
 
     def test_get_win_normalize_zscore(self):
-        base = os.path.dirname(__file__)
-        test_dataset = os.path.join(base, 'data')
-        test_coordinate_file = os.path.join(base, 'test_coordinates.csv')
+        ff = data_generator.get_files(self.test_dataset,
+                                      self.test_coordinate_file)[1]
 
-        ff = data_generator.get_files(test_dataset,
-                                      test_coordinate_file)[1]
+        g = data_generator.get_win(ff[0], ff[1], ['target1'], 10, 1,
+                                   self.gen_path, normalize='zscore')
 
-        df, freqs = data_generator.get_win(ff[0], ff[1],
-                                           ['target1'], 10, 1,
-                                           normalize='zscore')
-
+        df = pd.read_csv(g)
         first_win = df.loc[0].tolist()
 
         tg = []
@@ -240,6 +235,24 @@ class TestDataGeneratorUtils(unittest.TestCase):
 
         self.assertEqual(61, len(first_win))
         self.assertTrue(np.allclose(tg, first_win, rtol=1e-04, atol=1e-08))
+
+    def test_exception_in_window_generation(self):
+        ff = data_generator.get_files(self.test_dataset,
+                                      self.test_coordinate_file)[1]
+
+        g = data_generator.get_win(ff[0], ff[1], ['target1'], 10, 1,
+                                   'faulty_loc')
+
+        self.assertIsNone(g)
+
+    def test_concatenate_and_save(self):
+        data_generator.concatenate_and_save(
+            os.path.join(self.test_dataset, 'aggregated'),
+            os.path.join(self.gen_path, 'full.csv'))
+
+        full = pd.read_csv(os.path.join(self.gen_path, 'full.csv'))
+
+        self.assertEqual(4823 * 2, full.shape[0])
 
 
 if __name__ == '__main__':
