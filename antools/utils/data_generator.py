@@ -131,7 +131,7 @@ def get_win(exercise_file, crds, sensors, win_size, stride, dst,
     exr = exr.dropna(axis=0)
 
     try:
-        cls = ['acc_x_', 'acc_y_', 'acc_z_', 'gyro_x_', 'gyro_y_', 'gyro_z_']
+        cls = ['acc_x', 'acc_y', 'acc_z', 'gyro_x', 'gyro_y', 'gyro_z']
         col_list = list(exr.columns)
 
         if normalize == 'minmax':
@@ -144,8 +144,11 @@ def get_win(exercise_file, crds, sensors, win_size, stride, dst,
 
         all_sig = []
 
-        for t in sensors:
-            all_sig += [exr[i + t] for i in cls]
+        if 'NULL' in sensors:
+            all_sig += [exr[i] for i in cls]
+        else:
+            for t in sensors:
+                all_sig += [exr[i + '_' + t] for i in cls]
 
         cols = ['{}{}'.format(a, i) for a in cls for i in range(win_size *
                                                                 len(sensors))]
@@ -251,8 +254,8 @@ def generate_input(dataset, train_dst, test_dst, crds, target_sensor,
     clprint.ptinfo('Training subjects: {}'.format(train_s))
     clprint.ptinfo('Testing subjects: {}'.format(test_s))
 
-    train_temp_dst = os.path.join(dataset, 'supercacca', 'train')
-    test_temp_dst = os.path.join(dataset, 'supercacca', 'test')
+    train_temp_dst = os.path.join(dataset, 'temp_file_concat', 'train')
+    test_temp_dst = os.path.join(dataset, 'temp_file_concat', 'test')
     os.makedirs(train_temp_dst, exist_ok=True)
     os.makedirs(test_temp_dst, exist_ok=True)
 
@@ -270,6 +273,9 @@ def generate_input(dataset, train_dst, test_dst, crds, target_sensor,
 
     parallelize_window_generation_imap(test_args, procs=4)
     concatenate_and_save(test_temp_dst, test_dst)
+
+    shutil.rmtree(train_temp_dst)
+    shutil.rmtree(test_temp_dst)
 
     return train_s, test_s
 
@@ -302,7 +308,6 @@ def concatenate_and_save(source, destination):
                     infile.readline()
 
                 shutil.copyfileobj(infile, outfile)
-                print('{} copied'.format(fname))
 
 
 def serialize_window_generation(passed_args):
