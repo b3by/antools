@@ -286,7 +286,7 @@ def cross_entropy_loss(logits, labels, name, regularize=False):
         A tensor containing the loss value.
     """
     with tf.name_scope(name):
-        xentropy = -tf.reduce_sum(labels * tf.log(logits),
+        xentropy = -tf.reduce_sum(labels * tf.log(logits + 1e-8),
                                   reduction_indices=[1])
 
         loss = tf.reduce_mean(xentropy)
