@@ -144,7 +144,8 @@ def get_win(exercise_file, crds, sensors, win_size, stride, dst,
 
         all_sig = []
 
-        if 'NULL' in sensors:
+        if (('NULL' in sensors) or (not any(y in x for x in col_list for y in
+                                            sensors))):
             all_sig += [exr[i] for i in cls]
         else:
             for t in sensors:
@@ -298,7 +299,7 @@ def concatenate_and_save(source, destination):
         The full path of the destination file.
 
     """
-    clprint.ptinfo('Concatenating from {} to {}'.format(source, destination))
+    clprint.ptinfo('Concatenating to {}'.format(destination))
     allFiles = glob.glob(source + '/*.csv')
 
     with open(destination, 'wb') as outfile:
