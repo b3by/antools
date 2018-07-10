@@ -1,6 +1,7 @@
 import unittest
 import os
 import shutil
+import types
 
 from antools.utils import data_generator
 import pandas as pd
@@ -73,13 +74,13 @@ class TestDataGeneratorUtils(unittest.TestCase):
             win, [2, 3, 4, 5, 6, 12, 13, 14, 15, 16, 22, 23, 24, 25, 26])
 
     def test_get_files(self):
-        f1 = os.path.join(self.base, 'data/ex1/ex1.real.csv')
-        f2 = os.path.join(self.base, 'data/ex1/ex1.mock.csv')
+        f1 = os.path.join(self.base, 'data/ex1/ex1.0.real.0.csv')
+        f2 = os.path.join(self.base, 'data/ex1/ex1.0.mock.0.csv')
 
         ll = data_generator.get_files(self.test_dataset,
                                       self.test_coordinate_file)
 
-        self.assertEqual(2, len(ll))
+        self.assertEqual(3, len(ll))
         self.assertEqual(2, len(ll[1][1]))
 
         self.assertEqual(f1, ll[0][0])
@@ -98,13 +99,13 @@ class TestDataGeneratorUtils(unittest.TestCase):
         self.assertCountEqual([(20, 40), (60, 80)], ll[1][1])
 
     def test_get_files_with_exercise(self):
-        f1 = os.path.join(self.base, 'data/ex1/ex1.real.csv')
-        f2 = os.path.join(self.base, 'data/ex1/ex1.mock.csv')
+        f1 = os.path.join(self.base, 'data/ex1/ex1.0.real.0.csv')
+        f2 = os.path.join(self.base, 'data/ex1/ex1.0.mock.0.csv')
 
         ll = data_generator.get_files(self.test_dataset,
                                       self.test_coordinate_file, ['ex1'])
 
-        self.assertEqual(2, len(ll))
+        self.assertEqual(3, len(ll))
         self.assertEqual(2, len(ll[1][1]))
 
         self.assertEqual(f1, ll[0][0])
@@ -128,7 +129,7 @@ class TestDataGeneratorUtils(unittest.TestCase):
 
         g = data_generator.get_win(ff[0], ff[1], ['target1'], 10, 1,
                                    self.gen_path)
-        self.assertEqual(g, os.path.join(self.gen_path, 'ex1.mock.csv'))
+        self.assertEqual(g, os.path.join(self.gen_path, 'ex1.0.mock.0.csv'))
         df = pd.read_csv(g)
         self.assertEqual(int(((100 - 10) / 1) + 1), df.shape[0])
 
@@ -245,6 +246,16 @@ class TestDataGeneratorUtils(unittest.TestCase):
 
         self.assertIsNone(g)
 
+    def test_get_win_no_sensors(self):
+        ff = data_generator.get_files(self.test_dataset,
+                                      self.test_coordinate_file)[2]
+
+        g = data_generator.get_win(ff[0], ff[1], ['missing'], 10, 1,
+                                   self.gen_path)
+
+        df = pd.read_csv(g)
+        self.assertEqual(61, len(df.loc[0].tolist()))
+
     def test_concatenate_and_save(self):
         data_generator.concatenate_and_save(
             os.path.join(self.test_dataset, 'aggregated'),
@@ -253,6 +264,59 @@ class TestDataGeneratorUtils(unittest.TestCase):
         full = pd.read_csv(os.path.join(self.gen_path, 'full.csv'))
 
         self.assertEqual(4823 * 2, full.shape[0])
+
+    def test_generate_input(self):
+        tr, ts = data_generator.generate_input(
+            self.test_dataset,
+            os.path.join(self.gen_path, 'train.csv'),
+            os.path.join(self.gen_path, 'test.csv'),
+            self.test_coordinate_file,
+            ['target1'], 10, 1)
+
+        self.assertEqual([], tr)
+        self.assertEqual([0], ts)
+
+        self.assertTrue(os.path.exists(
+            os.path.join(self.gen_path, 'test.csv')))
+
+        df = pd.read_csv(os.path.join(self.gen_path, 'test.csv'))
+
+        self.assertEqual(61, df.shape[1])
+        self.assertEqual(182, df.shape[0])
+
+    def test_generate_input_with_max_files(self):
+        tr, ts = data_generator.generate_input(
+            self.test_dataset,
+            os.path.join(self.gen_path, 'train.csv'),
+            os.path.join(self.gen_path, 'test.csv'),
+            self.test_coordinate_file,
+            ['target1'], 10, 1, max_files=2)
+
+        df = pd.read_csv(os.path.join(self.gen_path, 'test.csv'))
+
+        self.assertEqual(61, df.shape[1])
+        self.assertEqual(91, df.shape[0])
+
+    def test_generate_dataset(self):
+        flg = types.SimpleNamespace()
+        flg.dataset_location = self.test_dataset
+        flg.train = os.path.join(self.gen_path, 'train.csv')
+        flg.test = os.path.join(self.gen_path, 'test.csv')
+        flg.coordinates = self.test_coordinate_file
+        flg.sensors = ['target1']
+        flg.window_size = 10
+        flg.stride = 1
+        flg.exercises = ['ex1']
+
+        tr, ts = data_generator.generate_datasets(flg)
+
+        self.assertTrue(os.path.exists(
+            os.path.join(self.gen_path, 'test.csv')))
+
+        df = pd.read_csv(os.path.join(self.gen_path, 'test.csv'))
+
+        self.assertEqual(61, df.shape[1])
+        self.assertEqual(182, df.shape[0])
 
 
 if __name__ == '__main__':
