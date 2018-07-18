@@ -237,6 +237,35 @@ def maxpool_layer(x, kernel, name, padding='VALID'):
                               padding=padding)
 
 
+def avgpool_layer(x, kernel, name, padding='VALID'):
+    """Generate a average pooling layer
+
+    This method can be used to generate a average pooling layer. The input and
+    the kernel dimensions should be provided as input. By default, no padding
+    is applied to the input layer before the max pooling operation.
+
+    Parameters
+    ----------
+    x : tf.Tensor
+        The input tensor.
+    kernel : types.SimpleNamespace
+        Namespace with 'kernel' and 'strides' fields.
+    name : str
+        The name of the layer scope.
+    padding : str
+        The type of padding to apply to the input (default VALID).
+
+    Returns
+    -------
+    tf.Tensor
+        The input tensor processed with the average pooling layer.
+
+    """
+    with tf.name_scope(name):
+        return tf.nn.avg_pool(x, ksize=kernel.kernel, strides=kernel.strides,
+                              padding=padding)
+
+
 def softmax_layer(x, number_labels, name):
     """Generate softmax layer
 
