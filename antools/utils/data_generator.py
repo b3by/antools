@@ -7,7 +7,6 @@ import glob
 import pandas as pd
 import numpy as np
 
-from tqdm import tqdm
 from sklearn.model_selection import train_test_split
 
 from . import clprint
@@ -263,10 +262,10 @@ def generate_input(dataset, train_dst, test_dst, crds, target_sensor,
     test_args = [[tf[0], tf[1], target_sensor, window_size, stride,
                   test_temp_dst, normalize] for tf in test_files]
 
-    parallelize_window_generation_imap(train_args, procs=4)
+    parallelize_window_generation_imap(train_args, procs=procs)
     concatenate_and_save(train_temp_dst, train_dst)
 
-    parallelize_window_generation_imap(test_args, procs=4)
+    parallelize_window_generation_imap(test_args, procs=procs)
     concatenate_and_save(test_temp_dst, test_dst)
 
     shutil.rmtree(train_temp_dst)
@@ -302,33 +301,6 @@ def concatenate_and_save(source, destination):
                     infile.readline()
 
                 shutil.copyfileobj(infile, outfile)
-
-
-def serialize_window_generation(passed_args):
-    """Extract windows in a serial fashion
-
-    This method takes a list of arguments, and calls the get_win function for
-    each one of them. The function is called sequentially.
-
-    Parameters
-    ----------
-    passed_args : list
-        A list of lists to unpack and pass to the get_win function.
-
-    Returns
-    -------
-    list
-        A list of tuples, where each tuple is composed by a list of arguments
-        and the returned value from the get_win function (either the
-        destination path or None).
-
-    """
-    tqdm.monitor_interval = 0
-    written = []
-    for a in tqdm(passed_args, desc='Processing frames'):
-        written.append((a, get_win(*a)))
-
-    return written
 
 
 def parallelize_window_generation_imap(passed_args, procs=None):
