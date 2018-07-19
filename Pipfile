@@ -10,7 +10,7 @@ tqdm = "*"
 sklearn = "*"
 scipy = "*"
 matplotlib = "*"
-tensorflow = "*"
+tensorflow = {path = "./../tensorflow_pkg/yolo/tensorflow-1.9.0rc0-cp36-cp36m-linux_x86_64.whl"}
 
 [dev-packages]
 coverage = "*"

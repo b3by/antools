@@ -7,7 +7,6 @@ be built with a bit of care.
 from functools import reduce
 
 import tensorflow as tf
-from tensorflow.python.ops import math_ops
 
 
 activations = {
@@ -381,8 +380,8 @@ def adam_backprop(loss, learning_rate, global_step, name):
 
         beta1_power = tf.pow(beta1, tf.cast(global_step, tf.float32))
         beta2_power = tf.pow(beta2, tf.cast(global_step, tf.float32))
-        lr = (optimizer._lr * math_ops.sqrt(1.0 - beta2_power) / (1.0 -
-                                                                  beta1_power))
+        lr = (optimizer._lr * tf.sqrt(1.0 - beta2_power) / (1.0 -
+                                                            beta1_power))
         tf.summary.scalar('learning_rate', lr)
 
         return optimizer.minimize(loss, global_step=global_step)

@@ -252,16 +252,10 @@ def generate_input(dataset, train_dst, test_dst, crds, target_sensor,
     for test_sub_id in test_s:
         test_files += subjects[test_sub_id]
 
-    clprint.ptinfo('Training subjects: {}'.format(train_s))
-    clprint.ptinfo('Testing subjects: {}'.format(test_s))
-
     train_temp_dst = os.path.join(dataset, 'temp_file_concat', 'train')
     test_temp_dst = os.path.join(dataset, 'temp_file_concat', 'test')
     os.makedirs(train_temp_dst, exist_ok=True)
     os.makedirs(test_temp_dst, exist_ok=True)
-
-    clprint.ptinfo('  Train temp destination: {}'.format(train_temp_dst))
-    clprint.ptinfo('  Test temp destination: {}'.format(test_temp_dst))
 
     train_args = [[tf[0], tf[1], target_sensor, window_size, stride,
                    train_temp_dst, normalize] for tf in train_files]
@@ -299,7 +293,6 @@ def concatenate_and_save(source, destination):
         The full path of the destination file.
 
     """
-    clprint.ptinfo('Concatenating to {}'.format(destination))
     allFiles = glob.glob(source + '/*.csv')
 
     with open(destination, 'wb') as outfile:
