@@ -180,7 +180,7 @@ def get_win(exercise_file, crds, sensors, win_size, stride, dst,
 def generate_input(dataset, train_dst, test_dst, crds, target_sensor,
                    window_size, stride, exercises=None, max_files=-1,
                    test_size=0.2, normalize=None, tts_seed=42, parallel=False,
-                   procs=None):
+                   procs=None, t_subs=None):
     """Generate train and test datasets, write them to file
 
     This method parses all the files in a given dataset, and aggregates them
@@ -241,7 +241,11 @@ def generate_input(dataset, train_dst, test_dst, crds, target_sensor,
             subjects[s_id].append(f)
 
     subs = list(subjects.keys())
-    train_s, test_s = train_test_split(subs, random_state=tts_seed)
+    if t_subs is None:
+        train_s, test_s = train_test_split(subs, random_state=tts_seed)
+    else:
+        test_s = t_subs
+        train_s = [x for x in subs if x not in t_subs]
 
     train_files = []
     for train_sub_id in train_s:
@@ -373,7 +377,8 @@ def generate_datasets(Flags, exercises=None, max_files=-1, test_size=0.2,
                           Flags.coordinates, Flags.sensors, Flags.window_size,
                           Flags.stride, exercises=Flags.exercises,
                           max_files=max_files, test_size=test_size,
-                          normalize=normalize, tts_seed=tts_seed)
+                          normalize=normalize, tts_seed=tts_seed,
+                          t_subs=Flags.t_subjects)
 
 
 def get_tf_train_test(train_file_loc, test_file_loc, height, width, depth):
