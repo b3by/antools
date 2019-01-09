@@ -307,6 +307,7 @@ class TestDataGeneratorUtils(unittest.TestCase):
         flg.window_size = 10
         flg.stride = 1
         flg.exercises = ['ex1']
+        flg.t_subjects = None
 
         tr, ts = data_generator.generate_datasets(flg)
 

@@ -10,10 +10,17 @@ tqdm = "*"
 sklearn = "*"
 scipy = "*"
 matplotlib = "*"
-tensorflow = {path = "./../tensorflow_pkg/yolo/tensorflow-1.9.0rc0-cp36-cp36m-linux_x86_64.whl"}
+tensorflow = "*"
 
 [dev-packages]
 coverage = "*"
+flake8 = "*"
+autopep8 = "*"
+jedi = "*"
+rope = "*"
+yapf = "*"
+black = "*"
+nose = "*"
 
 [requires]
 python_version = "3.6"

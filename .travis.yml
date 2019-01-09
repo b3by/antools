@@ -1,9 +1,24 @@
 language: python
+
 sudo: false
+
 dist: trusty
+
 python:
-- '3.4'
-- '3.5'
-- '3.6'
+  - '3.5'
+  - '3.6'
+
 install: pip install .
-script: python -m unittest -v
+
+build:
+  pre_ci:
+    - mkdir -p shippable/testresults
+    - mkdir -p shippable/codecoverage
+
+  ci:
+    - python -m unittest discover -s ./tests -v
+    - nosetests --with-xunit --xunit-file=shippable/testresults/nosetests.xml
+    - coverage run -m unittest discover -s tests/ -c -v
+
+  post_ci:
+    - which python & coverage xml -o shippable/codecoverage/coverage.xml ./src/math_utils.py

@@ -45,8 +45,8 @@ class Reporter():
         The number of iterations to wait for the autosave.
     """
 
-    def __init__(self, destination, restore=True, autosave=False,
-                 autosave_count=0):
+    def __init__(self, destination: str, restore: bool = True, autosave: bool =
+                 False, autosave_count: int = 0):
         """Create a reporter object
 
         The constructor will initialize all the reporter fields.
